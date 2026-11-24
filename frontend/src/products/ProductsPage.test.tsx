@@ -83,7 +83,8 @@ describe('ProductsPage', () => {
 
     renderWithQueryClient(<ProductsPage />);
 
-    expect(await screen.findByText('No products yet.')).toBeInTheDocument();
+    expect(await screen.findByText('No products yet')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add your first product' })).toBeInTheDocument();
   });
 
   it('shows the error and retries on request', async () => {

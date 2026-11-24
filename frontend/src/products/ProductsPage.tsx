@@ -3,6 +3,7 @@ import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
+import { EmptyState, ErrorState, LoadingState } from './ListStates';
 import { ProductFormDialog } from './ProductFormDialog';
 import { ProductList } from './ProductList';
 import type { Product } from './product.types';
@@ -36,20 +37,13 @@ export function ProductsPage() {
         </div>
       </div>
 
-      {isPending && <p className="text-gray-500">Loading products…</p>}
+      {isPending && <LoadingState />}
 
-      {isError && (
-        <div role="alert" className="space-x-2">
-          <span>{error.message}</span>
-          <button type="button" className="underline" onClick={() => refetch()}>
-            Try again
-          </button>
-        </div>
-      )}
+      {isError && <ErrorState message={error.message} onRetry={() => refetch()} />}
 
       {products &&
         (products.length === 0 ? (
-          <p className="text-gray-500">No products yet.</p>
+          <EmptyState onAdd={() => setFormTarget('new')} />
         ) : (
           <ProductList products={visibleProducts} onEdit={setFormTarget} onDelete={setDeleteTarget} />
         ))}
