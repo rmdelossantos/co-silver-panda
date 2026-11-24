@@ -32,3 +32,36 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  docker:
+    name: docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: product-catalog:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run container and wait until healthy
+        run: |
+          docker run -d --name catalog -p 3000:3000 product-catalog:ci
+          for i in $(seq 1 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' catalog)" = healthy ] && break
+            sleep 2
+          done
+          docker inspect -f '{{.State.Health.Status}}' catalog | grep -qx healthy || { docker logs catalog; exit 1; }
+      - name: Smoke test UI and API
+        run: |
+          curl -fsS localhost:3000/ | grep -q '<title>Product Catalog</title>'
+          curl -fsS localhost:3000/api/products | grep -q 'Wireless Mouse'
+          curl -fsS -X POST localhost:3000/api/products -H 'content-type: application/json' \
+            -d '{"name":"CI Mug","price":9.5,"category":"Kitchen"}' | grep -q '"CI Mug"'
+      - name: Stops cleanly on SIGTERM
+        run: |
+          timeout 8 docker stop catalog
+          [ "$(docker inspect -f '{{.State.ExitCode}}' catalog)" = 0 ]
