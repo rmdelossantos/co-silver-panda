@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
 import { ProductList } from './ProductList';
@@ -6,7 +7,7 @@ import { useProducts } from './useProducts';
 
 export function ProductsPage() {
   const { data: products, isPending, isError, error, refetch } = useProducts();
-  const [requestedCategory, setRequestedCategory] = useState<string | null>(null);
+  const [requestedCategory, setRequestedCategory] = useSearchParam('category');
 
   const categories = useMemo(() => getCategories(products ?? []), [products]);
   const category = resolveCategory(categories, requestedCategory);
