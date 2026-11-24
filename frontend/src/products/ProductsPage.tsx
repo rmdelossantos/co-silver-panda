@@ -1,4 +1,6 @@
+import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Button } from '../components/Button';
 import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
@@ -19,37 +21,54 @@ export function ProductsPage() {
   const category = resolveCategory(categories, requestedCategory);
   const visibleProducts = useMemo(() => filterByCategory(products ?? [], category), [products, category]);
 
+  const summary = products && summarize(products.length, visibleProducts.length, categories.length, category);
+
   return (
-    <section aria-labelledby="products-heading" className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="products-heading" className="text-lg font-medium">
-          Products
-        </h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <CategoryFilter categories={categories} value={category} onChange={setRequestedCategory} />
-          <button
-            type="button"
-            onClick={() => setFormTarget('new')}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            Add product
-          </button>
+    <section aria-labelledby="products-heading">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h2 id="products-heading" className="text-2xl font-semibold tracking-tight">
+            Products
+          </h2>
+          <p aria-live="polite" className="mt-1 min-h-5 text-sm text-ink-muted">
+            {summary}
+          </p>
         </div>
+        <Button variant="primary" onClick={() => setFormTarget('new')}>
+          <Plus className="-ml-1 size-4" strokeWidth={2.25} aria-hidden="true" />
+          Add product
+        </Button>
       </div>
 
-      {isPending && <LoadingState />}
+      {products && products.length > 0 && (
+        <div className="mt-6">
+          <CategoryFilter categories={categories} value={category} onChange={setRequestedCategory} />
+        </div>
+      )}
 
-      {isError && <ErrorState message={error.message} onRetry={() => refetch()} />}
+      <div className="mt-4">
+        {isPending && <LoadingState />}
 
-      {products &&
-        (products.length === 0 ? (
-          <EmptyState onAdd={() => setFormTarget('new')} />
-        ) : (
-          <ProductList products={visibleProducts} onEdit={setFormTarget} onDelete={setDeleteTarget} />
-        ))}
+        {isError && <ErrorState message={error.message} onRetry={() => refetch()} />}
+
+        {products &&
+          (products.length === 0 ? (
+            <EmptyState onAdd={() => setFormTarget('new')} />
+          ) : (
+            <ProductList products={visibleProducts} onEdit={setFormTarget} onDelete={setDeleteTarget} />
+          ))}
+      </div>
 
       <ProductFormDialog target={formTarget} categories={categories} onClose={() => setFormTarget(null)} />
       <ConfirmDeleteDialog product={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </section>
   );
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+
+function summarize(total: number, visible: number, categoryCount: number, category: string | null) {
+  if (total === 0) return 'Your catalog is empty';
+  if (category) return `${visible} of ${plural(total, 'product', 'products')} in ${category}`;
+  return `${plural(total, 'product', 'products')} across ${plural(categoryCount, 'category', 'categories')}`;
 }
