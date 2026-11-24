@@ -20,6 +20,7 @@ A full-stack product catalog for managing products: add, view, filter by categor
 | Edit products | The pencil icon opens the same dialog, prefilled |
 | Delete products | The trash icon asks for confirmation before deleting |
 | Form validation | Required fields, numeric price, price above 0 and at most 1,000,000, at most 2 decimal places, and length limits. The same rules run on the server |
+| AI suggestions (add-on) | **Suggest with AI** in the product form drafts a description and category, grounded in similar products from your catalog. Optional and off unless an API key is set. See [AI assistance](#ai-assistance) |
 
 The app also handles loading, empty, and error states, shows toast confirmations, supports the keyboard (Esc closes dialogs, focus is managed when dialogs open and close), and lays out for phones.
 
@@ -46,13 +47,15 @@ The app also handles loading, empty, and error states, shows toast confirmations
 │   ├── src/
 │   │   ├── app.ts               createApp(db): middleware, routes, error handling
 │   │   ├── server.ts            opens the DB, seeds it, starts listening
-│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH, STATIC_DIR
-│   │   ├── db/                  SQLite connection, schema, sample data
+│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH, STATIC_DIR, AI_ENABLED, AI_MODEL
+│   │   ├── ai/                  Claude client, product assistant (retrieve → generate), AI routes
+│   │   ├── db/                  SQLite connection, schema + full-text index, sample data
 │   │   ├── products/            zod schema, repository (SQL), router
 │   │   └── middleware/          body validation, HttpError, error handler
 │   └── test/                    Supertest API tests
 ├── frontend/                    React app
 │   └── src/
+│       ├── ai/                  AI status/draft API, hooks, "Suggest with AI" panel
 │       ├── components/          Button, Dialog, shared form-control styles
 │       ├── lib/                 API client, query client, URL param hook, formatting
 │       ├── products/            page, list, filter, form, dialogs, hooks, tests
@@ -82,7 +85,7 @@ Open http://localhost:3000. One container serves the UI and the API from the sam
 docker compose -f compose.dev.yaml up --build
 ```
 
-Open http://localhost:5173. Edits to `backend/src` restart the API and edits to `frontend/src` hot-reload the UI. `node_modules` lives in container volumes, so native modules are built for Linux, and nothing has to be installed on the host.
+Open http://localhost:5173. Edits to `backend/src` restart the API and edits to `frontend/src` hot-reload the UI. `node_modules` lives in container volumes, so native modules are built for Linux, and nothing has to be installed on the host. Dependencies install when a container starts, so after switching branches or changing `package.json`, restart the service (for example `docker compose -f compose.dev.yaml restart api`).
 
 **Deploying the image.** The image is a standard, environment-configured container, so it runs on any container platform (Render, Fly.io, Railway, Cloud Run, ECS, Kubernetes):
 
@@ -131,6 +134,8 @@ Open http://localhost:5173. The Vite dev server forwards `/api/*` requests to th
 | `CORS_ORIGIN` | `http://localhost:5173` | Origin allowed to call the API from a browser |
 | `DB_PATH` | `data/catalog.db` | SQLite file location (`:memory:` for a throwaway DB). The Docker image uses `/data/catalog.db` |
 | `STATIC_DIR` | unset | Directory of the built frontend to serve with the API (set to `/app/public` in the Docker image) |
+| `ANTHROPIC_API_KEY` | unset | Turns on AI suggestions. Without it the feature is hidden and everything else works the same |
+| `AI_MODEL` | `claude-opus-5-5` | Claude model for suggestions, e.g. `claude-haiku-5-5` for lower cost and latency |
 
 See `backend/.env.example`. If you change `PORT`, also update the proxy target in `frontend/vite.config.ts`.
 
@@ -154,6 +159,8 @@ Base URL: `http://localhost:3000/api`
 | `POST` | `/products` | `ProductInput` | `201 Product` | `400` validation |
 | `PUT` | `/products/:id` | `ProductInput` | `200 Product` | `400`, `404` |
 | `DELETE` | `/products/:id` | | `204` | `404` |
+| `GET` | `/ai/status` | | `200 {"enabled": boolean}` | |
+| `POST` | `/ai/product-draft` | `DraftRequest` | `200 DraftResult` | `400`, `422` declined, `429` busy, `502` retry, `503` unavailable |
 
 ```ts
 // ProductInput
@@ -162,6 +169,13 @@ Base URL: `http://localhost:3000/api`
 // Product
 { id: number; name: string; price: number; category: string; description: string;
   createdAt: string; updatedAt: string }   // ISO 8601 timestamps
+
+// DraftRequest (blank fields allowed; over-long context is truncated)
+{ name: string; category?: string; description?: string; productId?: number }
+
+// DraftResult
+{ description: string; category: string; categoryIsNew: boolean;
+  sources: { id: number; name: string; category: string }[] }   // the catalog items it drew on
 
 // Error
 { error: { message: string; details?: { field: string; message: string }[] } }
@@ -176,8 +190,8 @@ curl -X POST localhost:3000/api/products \
 ## Testing
 
 ```bash
-cd backend && npm test     # 35 API tests: every endpoint, validation rule, and error path
-cd frontend && npm test    # 47 tests: API client, hooks, filtering, form validation, CRUD flows
+cd backend && npm test     # 96 tests: every endpoint, validation rule, error path, full-text search, AI assistant and routes
+cd frontend && npm test    # 84 tests: API client, hooks, filtering, form validation, CRUD flows, AI suggestions
 ```
 
 Each package also has `npm run lint` and `npm run typecheck`. CI runs lint, typecheck, test, and build for both packages on every pull request.
@@ -194,6 +208,43 @@ Frontend tests render the real page and hooks against [MSW](https://mswjs.io) re
 - **Filtering happens on the client.** The list is already cached, so changing the filter is instant. The API's `?category=` filter is still available.
 - **Server state lives in TanStack Query.** After an add, edit, or delete, the list is fetched again from the server rather than patched locally, so it always matches the database.
 - **Dialogs use the native `<dialog>` element,** so focus trapping, Esc to close, and the backdrop come from the browser.
+
+## AI assistance
+
+An optional add-on for the brief's "integrate AI" nice-to-have. In the Add or Edit dialog, **Suggest with AI** drafts a description and category. You review the suggestion and choose **Use suggestion** or **Dismiss**; nothing changes until you do.
+
+![Suggest with AI in the product form](docs/screenshots/ai-suggestion.png)
+
+**How it works (retrieval-augmented generation):**
+
+1. **Retrieve:** SQLite [FTS5](https://sqlite.org/fts5.html) full-text search, with BM25 ranking and stemming, finds the products most similar to what you've typed. The index is kept in sync by triggers. The app also loads the list of existing categories.
+2. **Augment:** both go into the prompt, the similar products as house-style examples and the categories as the vocabulary to reuse.
+3. **Generate:** Claude returns the description and category as structured JSON (`output_config.format`), at low effort. The server re-checks the result against the same rules as the products API and reuses the existing spelling of a matching category. The panel says whether the category is **existing** or **new**, and lists the products the suggestion is based on.
+
+**Why FTS5 rather than embeddings:** Anthropic has no embeddings API, and a vector store would mean a second vendor and key. FTS5 ships with SQLite, stays inside the repository layer, and works well for product names.
+
+**Setup:** set `ANTHROPIC_API_KEY` (and optionally `AI_MODEL`). Nothing loads `.env` automatically, so pass the key in the environment:
+
+```bash
+cd backend && ANTHROPIC_API_KEY=sk-ant-... npm run dev
+ANTHROPIC_API_KEY=sk-ant-... docker compose up --build
+```
+
+**Guardrails:**
+
+- **Key safety:** the key is used only on the server, and never reaches the browser, logs or error responses.
+- **Plain-language errors:** upstream errors are mapped to plain-language messages, and refusals are handled.
+- **Cost guard:** a limit of 20 drafts a minute per server, a 30 s timeout and no automatic retries.
+- **Prompt injection:** catalog text in the prompt is marked as data, not instructions.
+- **Usage logging:** each call logs its token usage (`[ai] product-draft model=… in=… out=…`).
+
+**Privacy and cost:** the product name, any category or description you've typed, and up to five similar catalog items are sent to Anthropic. A draft is a short prompt and a short answer. **Estimated** cost is roughly a cent or less with the default Opus 5.5 at low effort, and far less with `AI_MODEL=claude-haiku-5-5`. The logged token counts give the exact figure.
+
+**Tests** run without a key or network access:
+
+- the assistant runs against a fake client
+- the routes run the real SDK against a local stub of the API, covering every error class, refusals, and a check that no upstream text or key leaks
+- the UI uses MSW, covering gating, applying and dismissing, stale suggestions, focus, and every error message
 
 ## Development history
 
@@ -213,7 +264,6 @@ The app was built in small pull requests, one concern at a time, each with CI:
 ## Possible improvements
 
 - Deploy the Docker image online for a live demo, on a platform with a persistent volume.
-- AI assistance: suggest a category and description from the product name.
 - Search by name, sorting, and pagination for larger catalogs.
 - A dedicated categories table if categories need their own management.
 - Authentication and per-user catalogs.

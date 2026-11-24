@@ -1,3 +1,5 @@
+import { createClaudeClient } from './ai/claude.js';
+import { createProductAssistant } from './ai/product-assistant.js';
 import { createApp } from './app.js';
 import { openDb } from './db/client.js';
 import { seedIfEmpty } from './db/seed.js';
@@ -6,10 +8,16 @@ import { createProductsRepo } from './products/products.repo.js';
 
 const db = openDb(env.DB_PATH);
 
-const seeded = seedIfEmpty(createProductsRepo(db));
+const repo = createProductsRepo(db);
+const seeded = seedIfEmpty(repo);
 if (seeded) console.log(`Seeded ${seeded} sample products`);
 
-const server = createApp(db).listen(env.PORT, () => {
+const assistant = env.AI_ENABLED
+  ? createProductAssistant({ client: createClaudeClient(), model: env.AI_MODEL, repo })
+  : undefined;
+console.log(assistant ? `AI suggestions on (${env.AI_MODEL})` : 'AI suggestions off (set ANTHROPIC_API_KEY to enable)');
+
+const server = createApp(db, { assistant }).listen(env.PORT, () => {
   console.log(`API listening on http://localhost:${env.PORT}`);
 });
 

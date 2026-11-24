@@ -59,6 +59,7 @@ jobs:
         run: |
           curl -fsS localhost:3000/ | grep -q '<title>Product Catalog</title>'
           curl -fsS localhost:3000/api/products | grep -q 'Wireless Mouse'
+          curl -fsS localhost:3000/api/ai/status | grep -q '"enabled":false'
           curl -fsS -X POST localhost:3000/api/products -H 'content-type: application/json' \
             -d '{"name":"CI Mug","price":9.5,"category":"Kitchen"}' | grep -q '"CI Mug"'
       - name: Stops cleanly on SIGTERM

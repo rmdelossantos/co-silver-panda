@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useForm, useWatch, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
+import { AiDraftAssist } from '../ai/AiDraftAssist';
 import { Button } from '../components/Button';
 import { controlClass, controlStateClass } from '../components/field-styles';
 import { ApiError } from '../lib/api-client';
@@ -34,6 +35,10 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
   const categoryListId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const form = useForm<ProductFormValues, unknown, ProductInput>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: toFormValues(product),
+  });
   const {
     register,
     control,
@@ -41,10 +46,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
     setError,
     getValues,
     formState: { errors, isSubmitting },
-  } = useForm<ProductFormValues, unknown, ProductInput>({
-    resolver: zodResolver(productFormSchema),
-    defaultValues: toFormValues(product),
-  });
+  } = form;
 
   const descriptionLength = useWatch({ control, name: 'description' }).length;
 
@@ -107,6 +109,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
           <option key={c} value={c} />
         ))}
       </datalist>
+      <AiDraftAssist form={form} productId={product?.id} />
       <Field
         label="Description (optional)"
         error={errors.description}
