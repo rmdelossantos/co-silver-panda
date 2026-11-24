@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -44,6 +44,26 @@ describe('delete product', () => {
     expect(screen.getByRole('button', { name: 'Delete Lamp' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(deleted).toEqual([1]);
+  });
+
+  it('moves focus to the next row after deleting, so keyboard users keep their place', async () => {
+    mockApi([makeProduct({ id: 1, name: 'Mouse' }), makeProduct({ id: 2, name: 'Lamp' })]);
+    renderWithQueryClient(<ProductsPage />);
+
+    const dialog = await openDeleteDialog('Mouse');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Edit Lamp' })).toHaveFocus());
+  });
+
+  it('moves focus to the Products heading after deleting the last product', async () => {
+    mockApi([makeProduct({ id: 1, name: 'Mouse' })]);
+    renderWithQueryClient(<ProductsPage />);
+
+    const dialog = await openDeleteDialog('Mouse');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Products' })).toHaveFocus());
   });
 
   it('does nothing when cancelled', async () => {

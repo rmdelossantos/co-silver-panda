@@ -8,9 +8,12 @@ import { useDeleteProduct } from './useProducts';
 interface ConfirmDeleteDialogProps {
   product: Product | null;
   onClose: () => void;
+  // Called once the product is gone (deleted now or already), before the dialog closes.
+  onDeleted: (product: Product) => void;
+  finalFocus?: () => HTMLElement | null;
 }
 
-export function ConfirmDeleteDialog({ product, onClose }: ConfirmDeleteDialogProps) {
+export function ConfirmDeleteDialog({ product, onClose, onDeleted, finalFocus }: ConfirmDeleteDialogProps) {
   const deleteProduct = useDeleteProduct();
 
   const close = () => {
@@ -28,11 +31,12 @@ export function ConfirmDeleteDialog({ product, onClose }: ConfirmDeleteDialogPro
       if (!(error instanceof ApiError && error.status === 404)) return;
       toast.info(`“${product.name}” was already deleted`);
     }
+    onDeleted(product);
     close();
   };
 
   return (
-    <Dialog open={product !== null} title="Delete product?" onClose={close}>
+    <Dialog open={product !== null} title="Delete product?" onClose={close} finalFocus={finalFocus}>
       <p className="text-sm text-ink-muted">
         <strong className="font-medium text-ink">{product?.name}</strong> will be permanently removed from the
         catalog. This can’t be undone.

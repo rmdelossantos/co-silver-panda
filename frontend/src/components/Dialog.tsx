@@ -7,10 +7,12 @@ interface DialogProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  // Element to focus after closing, when the browser's default (the opener) may no longer exist.
+  finalFocus?: () => HTMLElement | null;
 }
 
 // Native modal <dialog>: focus trapping, Esc to close, and the backdrop come from the browser.
-export function Dialog({ open, title, onClose, children }: DialogProps) {
+export function Dialog({ open, title, onClose, children, finalFocus }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -22,8 +24,11 @@ export function Dialog({ open, title, onClose, children }: DialogProps) {
       // Native dialogs focus the first control (the close button); prefer a marked element instead.
       dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
     }
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+    if (!open && dialog.open) {
+      dialog.close();
+      finalFocus?.()?.focus();
+    }
+  }, [open, finalFocus]);
 
   return (
     <dialog

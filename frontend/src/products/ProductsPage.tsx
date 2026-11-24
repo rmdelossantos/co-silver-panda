@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
@@ -16,10 +16,28 @@ export function ProductsPage() {
   const [requestedCategory, setRequestedCategory] = useSearchParam('category');
   const [formTarget, setFormTarget] = useState<Product | 'new' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  // Where keyboard focus goes after a delete removes the row that opened the dialog.
+  const focusAfterDelete = useRef<number | 'heading' | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
 
   const categories = useMemo(() => getCategories(products ?? []), [products]);
   const category = resolveCategory(categories, requestedCategory);
   const visibleProducts = useMemo(() => filterByCategory(products ?? [], category), [products, category]);
+
+  const handleDeleted = (deleted: Product) => {
+    const index = visibleProducts.findIndex((p) => p.id === deleted.id);
+    const neighbour = visibleProducts[index + 1] ?? visibleProducts[index - 1];
+    focusAfterDelete.current = neighbour?.id ?? 'heading';
+  };
+
+  // Runs as the delete dialog closes; null keeps the browser default (back to the opener, e.g. on Cancel).
+  const deleteFinalFocus = useCallback(() => {
+    const target = focusAfterDelete.current;
+    focusAfterDelete.current = null;
+    if (target === null) return null;
+    const nextEdit = target === 'heading' ? null : document.querySelector<HTMLElement>(`[data-edit-id="${target}"]`);
+    return nextEdit ?? headingRef.current;
+  }, []);
 
   const summary = products && summarize(products.length, visibleProducts.length, categories.length, category);
 
@@ -27,7 +45,12 @@ export function ProductsPage() {
     <section aria-labelledby="products-heading">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 id="products-heading" className="text-2xl font-semibold tracking-tight">
+          <h2
+            id="products-heading"
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-2xl font-semibold tracking-tight focus-visible:outline-none"
+          >
             Products
           </h2>
           <p aria-live="polite" className="mt-1 min-h-5 text-sm text-ink-muted">
@@ -65,7 +88,12 @@ export function ProductsPage() {
       </div>
 
       <ProductFormDialog target={formTarget} categories={categories} onClose={() => setFormTarget(null)} />
-      <ConfirmDeleteDialog product={deleteTarget} onClose={() => setDeleteTarget(null)} />
+      <ConfirmDeleteDialog
+        product={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onDeleted={handleDeleted}
+        finalFocus={deleteFinalFocus}
+      />
     </section>
   );
 }

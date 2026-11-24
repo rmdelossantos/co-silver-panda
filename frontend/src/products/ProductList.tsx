@@ -58,6 +58,7 @@ export function ProductList({ products, categories, onEdit, onDelete }: ProductL
                     size="icon"
                     onClick={() => onEdit(product)}
                     aria-label={`Edit ${product.name}`}
+                    data-edit-id={product.id}
                     title="Edit"
                   >
                     <Pencil className="size-4" aria-hidden="true" />
