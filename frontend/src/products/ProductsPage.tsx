@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
 import { ProductFormDialog } from './ProductFormDialog';
 import { ProductList } from './ProductList';
 import type { Product } from './product.types';
@@ -11,6 +12,7 @@ export function ProductsPage() {
   const { data: products, isPending, isError, error, refetch } = useProducts();
   const [requestedCategory, setRequestedCategory] = useSearchParam('category');
   const [formTarget, setFormTarget] = useState<Product | 'new' | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   const categories = useMemo(() => getCategories(products ?? []), [products]);
   const category = resolveCategory(categories, requestedCategory);
@@ -49,10 +51,11 @@ export function ProductsPage() {
         (products.length === 0 ? (
           <p className="text-gray-500">No products yet.</p>
         ) : (
-          <ProductList products={visibleProducts} onEdit={setFormTarget} />
+          <ProductList products={visibleProducts} onEdit={setFormTarget} onDelete={setDeleteTarget} />
         ))}
 
       <ProductFormDialog target={formTarget} categories={categories} onClose={() => setFormTarget(null)} />
+      <ConfirmDeleteDialog product={deleteTarget} onClose={() => setDeleteTarget(null)} />
     </section>
   );
 }
