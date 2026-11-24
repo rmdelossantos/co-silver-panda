@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:3000',
+      // Overridable so the dev server can reach the API container in compose.dev.yaml.
+      '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:3000',
     },
   },
   test: {

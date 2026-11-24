@@ -11,12 +11,18 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# --- Backend: compile TypeScript, then keep production dependencies only ------------------------------
-FROM node:${NODE_VERSION}-bookworm-slim AS api
-# Toolchain for better-sqlite3 in case no prebuilt binary matches the platform.
+# --- Node + native build toolchain (better-sqlite3 falls back to compiling when no prebuilt matches) ---
+FROM node:${NODE_VERSION}-bookworm-slim AS toolchain
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
   && rm -rf /var/lib/apt/lists/*
+
+# --- Development: used by compose.dev.yaml, source is bind-mounted --------------------------------------
+FROM toolchain AS dev
+WORKDIR /app
+
+# --- Backend: compile TypeScript, then keep production dependencies only ------------------------------
+FROM toolchain AS api
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci

@@ -1,0 +1,48 @@
+# Full development stack in containers with hot reload:
+#   docker compose -f compose.dev.yaml up --build   →  UI http://localhost:5173, API http://localhost:3000
+# Source is bind-mounted; node_modules live in named volumes so native modules are built for Linux.
+name: product-catalog-dev
+
+services:
+  api:
+    build:
+      context: .
+      target: dev
+    working_dir: /app/backend
+    command: sh -c "npm ci && npm run dev"
+    ports:
+      - "${API_PORT:-3000}:3000"
+    environment:
+      DB_PATH: /data/catalog.db
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-5173}
+    volumes:
+      - ./backend:/app/backend
+      - api-node-modules:/app/backend/node_modules
+      - dev-data:/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  web:
+    build:
+      context: .
+      target: dev
+    working_dir: /app/frontend
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "${WEB_PORT:-5173}:5173"
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    volumes:
+      - ./frontend:/app/frontend
+      - web-node-modules:/app/frontend/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  api-node-modules:
+  web-node-modules:
+  dev-data:
