@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import { Dialog } from '../components/Dialog';
-import { ProductForm } from './ProductForm';
+import { ProductForm, type ProductFormHandle } from './ProductForm';
 import type { Product, ProductInput } from './product.types';
 import { useCreateProduct, useUpdateProduct } from './useProducts';
 
@@ -15,6 +16,7 @@ export function ProductFormDialog({ target, categories, onClose }: ProductFormDi
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const product = target === 'new' ? undefined : (target ?? undefined);
+  const formRef = useRef<ProductFormHandle>(null);
 
   const save = async (input: ProductInput) => {
     if (product) {
@@ -28,9 +30,14 @@ export function ProductFormDialog({ target, categories, onClose }: ProductFormDi
   };
 
   return (
-    <Dialog open={target !== null} title={product ? 'Edit product' : 'Add product'} onClose={onClose}>
+    <Dialog
+      open={target !== null}
+      title={product ? 'Edit product' : 'Add product'}
+      onClose={() => formRef.current?.requestClose()}
+    >
       <ProductForm
         key={product?.id ?? 'new'}
+        ref={formRef}
         product={product}
         categories={categories}
         submitLabel={product ? 'Save changes' : 'Add product'}

@@ -119,13 +119,43 @@ describe('add product', () => {
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not reach the server');
   });
 
-  it('closes without saving on Cancel', async () => {
+  it('closes straight away on Cancel when nothing was typed', async () => {
     const requests = mockApi([makeProduct()]);
     renderWithQueryClient(<ProductsPage />);
     const dialog = await openAddForm();
 
-    await user.type(within(dialog).getByLabelText('Name'), 'Draft');
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+  });
+
+  it('asks before discarding unsaved changes, and keeps them on "Keep editing"', async () => {
+    mockApi([makeProduct()]);
+    renderWithQueryClient(<ProductsPage />);
+    const dialog = await openAddForm();
+    await user.type(within(dialog).getByLabelText('Name'), 'Draft');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Discard unsaved changes?');
+    expect(within(dialog).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Keep editing' }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Name')).toHaveValue('Draft');
+    expect(within(dialog).queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
+  });
+
+  it('discards unsaved changes from the close button after confirming', async () => {
+    const requests = mockApi([makeProduct()]);
+    renderWithQueryClient(<ProductsPage />);
+    const dialog = await openAddForm();
+    await user.type(within(dialog).getByLabelText('Name'), 'Draft');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Discard' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(requests).toHaveLength(0);

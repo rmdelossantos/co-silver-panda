@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useId } from 'react';
+import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import { useForm, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
 import { Button } from '../components/Button';
 import { controlClass, controlStateClass } from '../components/field-styles';
@@ -13,6 +13,12 @@ interface ProductFormProps {
   submitLabel: string;
   onSubmit: (input: ProductInput) => Promise<unknown>;
   onCancel: () => void;
+  ref?: Ref<ProductFormHandle>;
+}
+
+export interface ProductFormHandle {
+  // Close unless there are unsaved edits, in which case ask first. Used for Esc and the close button.
+  requestClose: () => void;
 }
 
 const toFormValues = (product?: Product): ProductFormValues => ({
@@ -22,17 +28,31 @@ const toFormValues = (product?: Product): ProductFormValues => ({
   description: product?.description ?? '',
 });
 
-export function ProductForm({ product, categories, submitLabel, onSubmit, onCancel }: ProductFormProps) {
+export function ProductForm({ product, categories, submitLabel, onSubmit, onCancel, ref }: ProductFormProps) {
   const categoryListId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
   } = useForm<ProductFormValues, unknown, ProductInput>({
     resolver: zodResolver(productFormSchema),
     defaultValues: toFormValues(product),
   });
+
+  const requestClose = () => {
+    if (confirmingDiscard) setConfirmingDiscard(false); // a second Esc means "keep editing"
+    else if (isDirty) setConfirmingDiscard(true);
+    else onCancel();
+  };
+  useImperativeHandle(ref, () => ({ requestClose }));
+
+  const keepEditing = () => {
+    setConfirmingDiscard(false);
+    cancelRef.current?.focus();
+  };
 
   const submit = handleSubmit(async (input) => {
     try {
@@ -81,8 +101,26 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
         </p>
       )}
 
+      {confirmingDiscard && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-line bg-canvas px-3 py-2.5">
+          <p role="alert" className="text-sm font-medium text-ink">
+            Discard unsaved changes?
+          </p>
+          <div className="flex gap-2">
+            <Button onClick={keepEditing} autoFocus>
+              Keep editing
+            </Button>
+            <Button variant="danger" onClick={onCancel}>
+              Discard
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-end gap-2 pt-1">
-        <Button onClick={onCancel}>Cancel</Button>
+        <Button ref={cancelRef} onClick={requestClose}>
+          Cancel
+        </Button>
         <Button type="submit" variant="primary" disabled={isSubmitting}>
           {isSubmitting ? 'Saving…' : submitLabel}
         </Button>
