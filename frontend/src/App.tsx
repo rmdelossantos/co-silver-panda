@@ -16,7 +16,7 @@ export default function App() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         <ProductsPage />
       </main>
-      <Toaster position="bottom-right" richColors closeButton toastOptions={{ style: { fontFamily: 'inherit' } }} />
+      <Toaster position="top-right" richColors closeButton toastOptions={{ style: { fontFamily: 'inherit' } }} />
     </>
   );
 }

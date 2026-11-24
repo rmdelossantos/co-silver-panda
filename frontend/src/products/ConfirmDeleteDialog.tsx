@@ -37,7 +37,7 @@ export function ConfirmDeleteDialog({ product, onClose, onDeleted, finalFocus }:
 
   return (
     <Dialog open={product !== null} title="Delete product?" onClose={close} finalFocus={finalFocus}>
-      <p className="text-sm text-ink-muted">
+      <p className="text-sm text-pretty text-ink-muted">
         <strong className="font-medium text-ink wrap-anywhere">{product?.name}</strong> will be permanently removed from the
         catalog. This can’t be undone.
       </p>

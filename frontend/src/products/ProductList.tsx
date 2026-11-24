@@ -16,19 +16,19 @@ interface ProductListProps {
 export function ProductList({ products, onEdit, onDelete }: ProductListProps) {
   return (
     <div className="md:overflow-hidden md:rounded-xl md:border md:border-line md:bg-surface md:shadow-xs">
-      <table className="w-full text-left text-sm max-md:block">
+      <table className="w-full text-left text-sm max-md:block md:table-fixed">
         <thead className="border-b border-line bg-canvas/60 text-xs font-medium text-ink-muted max-md:sr-only">
           <tr>
             <th scope="col" className="py-2.5 pr-4 pl-5 font-medium">
               Product
             </th>
-            <th scope="col" className="px-4 py-2.5 font-medium">
+            <th scope="col" className="w-52 px-4 py-2.5 font-medium">
               Category
             </th>
-            <th scope="col" className="px-4 py-2.5 text-right font-medium">
+            <th scope="col" className="w-36 px-4 py-2.5 text-right font-medium">
               Price
             </th>
-            <th scope="col" className="py-2.5 pr-3 pl-4">
+            <th scope="col" className="w-28 py-2.5 pr-3 pl-4">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -52,7 +52,7 @@ export function ProductList({ products, onEdit, onDelete }: ProductListProps) {
                 {formatPrice(product.price)}
               </td>
               <td className="py-2 pr-3 pl-4 max-md:col-start-2 max-md:row-start-2 max-md:-my-1.5 max-md:-mr-2 max-md:p-0">
-                <div className="flex justify-end gap-0.5">
+                <div className="flex justify-end gap-0.5 max-md:gap-2">
                   <Button
                     variant="ghost"
                     size="icon"

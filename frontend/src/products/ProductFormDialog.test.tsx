@@ -177,6 +177,15 @@ describe('add product', () => {
 });
 
 describe('edit product', () => {
+  it('shows whole-dollar prices with cents, e.g. 28 as 28.00', async () => {
+    mockApi([makeProduct({ id: 3, name: 'Yoga Mat', price: 28 })]);
+    renderWithQueryClient(<ProductsPage />);
+
+    await user.click(await screen.findByRole('button', { name: 'Edit Yoga Mat' }));
+
+    expect(within(screen.getByRole('dialog')).getByLabelText('Price (USD)')).toHaveValue('28.00');
+  });
+
   it('prefills the form and saves changes with PUT', async () => {
     const requests = mockApi([
       makeProduct({ id: 7, name: 'Wireless Mouse', price: 24.99, category: 'Electronics', description: 'Quiet' }),

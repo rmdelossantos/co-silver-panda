@@ -25,7 +25,7 @@ const DESCRIPTION_MAX = 500;
 
 const toFormValues = (product?: Product): ProductFormValues => ({
   name: product?.name ?? '',
-  price: product ? String(product.price) : '',
+  price: product ? product.price.toFixed(2) : '',
   category: product?.category ?? '',
   description: product?.description ?? '',
 });
