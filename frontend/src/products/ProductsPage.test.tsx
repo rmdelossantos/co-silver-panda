@@ -107,6 +107,7 @@ describe('ProductsPage', () => {
     expect(alert).toHaveTextContent('Couldn’t load products');
     expect(alert).toHaveTextContent('The server ran into a problem. Try again in a moment.');
     expect(alert).not.toHaveTextContent('Database unavailable');
+    expect(screen.queryByRole('button', { name: 'Add product' })).not.toBeInTheDocument();
 
     respondWith(products);
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));

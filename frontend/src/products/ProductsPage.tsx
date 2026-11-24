@@ -65,10 +65,13 @@ export function ProductsPage() {
             {summary}
           </p>
         </div>
-        <Button variant="primary" onClick={() => setFormTarget('new')}>
-          <Plus className="-ml-1 size-4" strokeWidth={2.25} aria-hidden="true" />
-          Add product
-        </Button>
+        {/* Adding is pointless while the catalog can't load; the error panel offers the retry instead. */}
+        {!isError && (
+          <Button variant="primary" onClick={() => setFormTarget('new')}>
+            <Plus className="-ml-1 size-4" strokeWidth={2.25} aria-hidden="true" />
+            Add product
+          </Button>
+        )}
       </div>
 
       {products && products.length > 0 && (

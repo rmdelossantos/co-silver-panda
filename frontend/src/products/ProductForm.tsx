@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { useForm, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
+import { useForm, useWatch, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
 import { Button } from '../components/Button';
 import { controlClass, controlStateClass } from '../components/field-styles';
 import { ApiError } from '../lib/api-client';
@@ -21,6 +21,8 @@ export interface ProductFormHandle {
   requestClose: () => void;
 }
 
+const DESCRIPTION_MAX = 500;
+
 const toFormValues = (product?: Product): ProductFormValues => ({
   name: product?.name ?? '',
   price: product ? String(product.price) : '',
@@ -34,6 +36,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting, isDirty },
@@ -41,6 +44,8 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
     resolver: zodResolver(productFormSchema),
     defaultValues: toFormValues(product),
   });
+
+  const descriptionLength = useWatch({ control, name: 'description' }).length;
 
   const requestClose = () => {
     if (confirmingDiscard) setConfirmingDiscard(false); // a second Esc means "keep editing"
@@ -93,7 +98,14 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
           <option key={c} value={c} />
         ))}
       </datalist>
-      <Field label="Description (optional)" error={errors.description} registration={register('description')} multiline />
+      <Field
+        label="Description (optional)"
+        error={errors.description}
+        registration={register('description')}
+        multiline
+        hint={`${descriptionLength} / ${DESCRIPTION_MAX} characters`}
+        hintOver={descriptionLength > DESCRIPTION_MAX}
+      />
 
       {errors.root && (
         <div role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">
@@ -141,13 +153,27 @@ interface FieldProps {
   autoComplete?: string;
   prefix?: string;
   autoFocusOnOpen?: boolean;
+  hint?: string;
+  hintOver?: boolean;
 }
 
-function Field({ label, error, registration, multiline, prefix, autoFocusOnOpen, ...inputProps }: FieldProps) {
+function Field({
+  label,
+  error,
+  registration,
+  multiline,
+  prefix,
+  autoFocusOnOpen,
+  hint,
+  hintOver,
+  ...inputProps
+}: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
+  const hintId = `${id}-hint`;
+  const describedBy = [error && errorId, hint && hintId].filter(Boolean).join(' ') || undefined;
   const className = `${controlClass} ${controlStateClass(!!error)}`;
-  const a11y = { id, 'aria-invalid': !!error, 'aria-describedby': error ? errorId : undefined };
+  const a11y = { id, 'aria-invalid': !!error, 'aria-describedby': describedBy };
 
   return (
     <div className="space-y-1.5">
@@ -173,10 +199,21 @@ function Field({ label, error, registration, multiline, prefix, autoFocusOnOpen,
           />
         </div>
       )}
-      {error && (
-        <p id={errorId} className="text-sm text-danger">
-          {error.message}
-        </p>
+      {(error || hint) && (
+        <div className="flex items-start justify-between gap-3">
+          {error ? (
+            <p id={errorId} className="text-sm text-danger">
+              {error.message}
+            </p>
+          ) : (
+            <span />
+          )}
+          {hint && (
+            <p id={hintId} className={`shrink-0 text-xs tabular-nums ${hintOver ? 'text-danger' : 'text-ink-muted'}`}>
+              {hint}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

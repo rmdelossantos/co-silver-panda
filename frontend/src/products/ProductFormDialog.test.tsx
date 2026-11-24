@@ -72,6 +72,18 @@ describe('add product', () => {
     expect(requests).toHaveLength(0);
   });
 
+  it('counts description characters against the 500 limit', async () => {
+    mockApi([makeProduct()]);
+    renderWithQueryClient(<ProductsPage />);
+    const dialog = await openAddForm();
+
+    expect(within(dialog).getByText('0 / 500 characters')).toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText('Description (optional)'), 'Quiet clicks');
+
+    expect(within(dialog).getByText('12 / 500 characters')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Description (optional)')).toHaveAccessibleDescription('12 / 500 characters');
+  });
+
   it('rejects a non-numeric price', async () => {
     mockApi([makeProduct()]);
     renderWithQueryClient(<ProductsPage />);
