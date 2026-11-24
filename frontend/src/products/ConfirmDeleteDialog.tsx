@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { ApiError } from '../lib/api-client';
 import type { Product } from './product.types';
@@ -32,29 +33,22 @@ export function ConfirmDeleteDialog({ product, onClose }: ConfirmDeleteDialogPro
 
   return (
     <Dialog open={product !== null} title="Delete product?" onClose={close}>
-      <p className="text-sm text-gray-600">
-        <strong className="font-medium text-gray-900">{product?.name}</strong> will be permanently removed from the
-        catalog.
+      <p className="text-sm text-ink-muted">
+        <strong className="font-medium text-ink">{product?.name}</strong> will be permanently removed from the
+        catalog. This can’t be undone.
       </p>
 
       {deleteProduct.isError && (
-        <p role="alert" className="mt-3 text-sm text-red-700">
+        <p role="alert" className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
           {deleteProduct.error.message}
         </p>
       )}
 
       <div className="mt-6 flex justify-end gap-2">
-        <button type="button" onClick={close} className="rounded-md px-4 py-2 text-sm hover:bg-gray-100">
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={confirm}
-          disabled={deleteProduct.isPending}
-          className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
+        <Button onClick={close}>Cancel</Button>
+        <Button variant="danger" onClick={confirm} disabled={deleteProduct.isPending}>
           {deleteProduct.isPending ? 'Deleting…' : 'Delete'}
-        </button>
+        </Button>
       </div>
     </Dialog>
   );

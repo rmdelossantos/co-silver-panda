@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId } from 'react';
 import { useForm, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
+import { Button } from '../components/Button';
+import { controlClass, controlStateClass } from '../components/field-styles';
 import { ApiError } from '../lib/api-client';
 import { productFormSchema, type ProductFormValues } from './product.schema';
 import type { Product, ProductInput } from './product.types';
@@ -49,7 +51,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
   });
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-4">
+    <form noValidate onSubmit={submit} className="space-y-5">
       <Field label="Name" error={errors.name} registration={register('name')} autoComplete="off" />
       <Field
         label="Price (USD)"
@@ -57,6 +59,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
         registration={register('price')}
         inputMode="decimal"
         placeholder="0.00"
+        prefix="$"
       />
       <Field
         label="Category"
@@ -73,22 +76,16 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
       <Field label="Description (optional)" error={errors.description} registration={register('description')} multiline />
 
       {errors.root && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
           {errors.root.message}
         </p>
       )}
 
-      <div className="flex justify-end gap-2 pt-2">
-        <button type="button" onClick={onCancel} className="rounded-md px-4 py-2 text-sm hover:bg-gray-100">
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
+      <div className="flex justify-end gap-2 pt-1">
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
           {isSubmitting ? 'Saving…' : submitLabel}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -103,26 +100,40 @@ interface FieldProps {
   placeholder?: string;
   list?: string;
   autoComplete?: string;
+  prefix?: string;
 }
 
-function Field({ label, error, registration, multiline, ...inputProps }: FieldProps) {
+function Field({ label, error, registration, multiline, prefix, ...inputProps }: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
-  const className = `w-full rounded-md border px-3 py-2 text-sm ${error ? 'border-red-500' : 'border-gray-300'}`;
+  const className = `${controlClass} ${controlStateClass(!!error)}`;
   const a11y = { id, 'aria-invalid': !!error, 'aria-describedby': error ? errorId : undefined };
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700">
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="block text-sm font-medium text-ink">
         {label}
       </label>
       {multiline ? (
-        <textarea rows={3} className={className} {...a11y} {...registration} />
+        <textarea rows={3} className={`${className} h-auto resize-y py-2.5`} {...a11y} {...registration} />
       ) : (
-        <input type="text" className={className} {...a11y} {...inputProps} {...registration} />
+        <div className="relative">
+          {prefix && (
+            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-ink-muted" aria-hidden="true">
+              {prefix}
+            </span>
+          )}
+          <input
+            type="text"
+            className={`${className} ${prefix ? 'pl-7 tabular-nums' : ''}`}
+            {...a11y}
+            {...inputProps}
+            {...registration}
+          />
+        </div>
       )}
       {error && (
-        <p id={errorId} className="text-sm text-red-700">
+        <p id={errorId} className="text-sm text-danger">
           {error.message}
         </p>
       )}
