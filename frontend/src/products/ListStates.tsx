@@ -27,7 +27,7 @@ export function EmptyState({ onAdd }: { onAdd: () => void }) {
         <PackageOpen className="size-5" />
       </span>
       <p className="mt-4 font-medium text-ink">No products yet</p>
-      <p className="mx-auto mt-1 max-w-xs text-sm text-ink-muted">
+      <p className="mx-auto mt-1 max-w-xs text-sm text-pretty text-ink-muted">
         Add your first product to start building the catalog.
       </p>
       <Button variant="primary" onClick={onAdd} className="mt-5">
@@ -46,7 +46,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry: () 
       </span>
       <p className="mt-4 font-medium text-ink">Couldn’t load products</p>
       <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">{message}</p>
-      <Button onClick={onRetry} className="mt-5">
+      <Button variant="primary" onClick={onRetry} className="mt-5">
         <RotateCw className="-ml-1 size-4" aria-hidden="true" />
         Try again
       </Button>

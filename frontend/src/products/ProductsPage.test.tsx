@@ -98,6 +98,8 @@ describe('ProductsPage', () => {
 
     expect(await screen.findByText('No products yet')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add your first product' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add product' })).not.toBeInTheDocument(); // one call to action
+    expect(screen.queryByText('Your catalog is empty')).not.toBeInTheDocument();
   });
 
   it('shows the error and retries on request', async () => {

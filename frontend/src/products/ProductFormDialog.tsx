@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { toast } from 'sonner';
 import { Dialog } from '../components/Dialog';
+import { shortName } from '../lib/format';
 import { ProductForm, type ProductFormHandle } from './ProductForm';
 import type { Product, ProductInput } from './product.types';
 import { useCreateProduct, useUpdateProduct } from './useProducts';
@@ -21,10 +22,10 @@ export function ProductFormDialog({ target, categories, onClose }: ProductFormDi
   const save = async (input: ProductInput) => {
     if (product) {
       const updated = await updateProduct.mutateAsync({ id: product.id, input });
-      toast.success(`Saved changes to “${updated.name}”`);
+      toast.success(`Saved changes to “${shortName(updated.name)}”`);
     } else {
       const created = await createProduct.mutateAsync(input);
-      toast.success(`Added “${created.name}”`);
+      toast.success(`Added “${shortName(created.name)}”`);
     }
     onClose();
   };

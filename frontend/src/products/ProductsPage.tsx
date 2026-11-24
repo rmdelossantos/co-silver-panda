@@ -73,8 +73,8 @@ export function ProductsPage() {
             {summary}
           </p>
         </div>
-        {/* Adding is pointless while the catalog can't load; the error panel offers the retry instead. */}
-        {!isError && (
+        {/* The error panel offers the retry and the empty panel its own Add button, so the header stays quiet. */}
+        {!isError && products?.length !== 0 && (
           <Button variant="primary" onClick={() => setFormTarget('new')}>
             <Plus className="-ml-1 size-4" strokeWidth={2.25} aria-hidden="true" />
             Add product
@@ -125,7 +125,7 @@ function summarize(
   category: string | null,
   missingCategory: string | null,
 ) {
-  if (total === 0) return 'Your catalog is empty';
+  if (total === 0) return null; // the empty panel says it
   if (missingCategory) return `No products in ${missingCategory}. Showing all categories instead.`;
   if (category) return `${visible} of ${plural(total, 'product', 'products')} in ${category}`;
   return `${plural(total, 'product', 'products')} across ${plural(categoryCount, 'category', 'categories')}`;

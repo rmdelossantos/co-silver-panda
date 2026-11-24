@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { Button } from '../components/Button';
 import { Dialog } from '../components/Dialog';
 import { ApiError } from '../lib/api-client';
+import { shortName } from '../lib/format';
 import type { Product } from './product.types';
 import { useDeleteProduct } from './useProducts';
 
@@ -25,11 +26,11 @@ export function ConfirmDeleteDialog({ product, onClose, onDeleted, finalFocus }:
     if (!product) return;
     try {
       await deleteProduct.mutateAsync(product.id);
-      toast.success(`Deleted “${product.name}”`);
+      toast.success(`Deleted “${shortName(product.name)}”`);
     } catch (error) {
       // Already gone (e.g. deleted in another tab) counts as done.
       if (!(error instanceof ApiError && error.status === 404)) return;
-      toast.info(`“${product.name}” was already deleted`);
+      toast.info(`“${shortName(product.name)}” was already deleted`);
     }
     onDeleted(product);
     close();
