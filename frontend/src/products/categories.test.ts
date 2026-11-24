@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { makeProduct } from '../test/fixtures';
-import { filterByCategory, getCategories, resolveCategory } from './categories';
+import { categoryTone, filterByCategory, getCategories, resolveCategory } from './categories';
+import { CATEGORY_TONES } from './category-tones';
 
 const products = [
   makeProduct({ id: 1, category: 'Kitchen' }),
@@ -32,5 +33,27 @@ describe('resolveCategory', () => {
 
   it('falls back to null for an unknown category', () => {
     expect(resolveCategory(['Kitchen'], 'Garden')).toBeNull();
+  });
+});
+
+describe('categoryTone', () => {
+  const tone = (category: string) => categoryTone(category, CATEGORY_TONES.length);
+
+  it('gives the seed categories distinct tones', () => {
+    const seed = ['Books', 'Electronics', 'Home', 'Kitchen', 'Sports'];
+
+    expect(new Set(seed.map(tone)).size).toBe(seed.length);
+  });
+
+  it('depends only on the name, case-insensitively and ignoring surrounding spaces', () => {
+    expect(tone(' kitchen ')).toBe(tone('Kitchen'));
+    expect(tone('Kitchen')).toBe(tone('Kitchen'));
+  });
+
+  it('always returns a valid tone index', () => {
+    for (const name of ['', 'a', 'Professional Kitchen & Restaurant Supplies', '日本語', '🍳']) {
+      expect(tone(name)).toBeGreaterThanOrEqual(0);
+      expect(tone(name)).toBeLessThan(CATEGORY_TONES.length);
+    }
   });
 });

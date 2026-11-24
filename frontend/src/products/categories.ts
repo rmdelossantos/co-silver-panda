@@ -16,12 +16,25 @@ export function filterByCategory(products: Product[], category: string | null): 
   return products.filter((p) => sameCategory(p.category, category));
 }
 
-export function categoryIndex(categories: string[], category: string): number {
-  return categories.findIndex((c) => sameCategory(c, category));
-}
-
 // Returns the matching category as listed, or null ("All") if it no longer exists.
 export function resolveCategory(categories: string[], category: string | null): string | null {
   if (!category) return null;
   return categories.find((c) => sameCategory(c, category)) ?? null;
 }
+
+const categoryKey = (category: string) => category.trim().toLowerCase();
+
+// FNV-1a: a small, stable string hash, so a category's tone depends only on its own name.
+function hashName(name: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) {
+    hash ^= name.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash;
+}
+
+// Same name, same tone, always: the tone depends only on the category's own (case-insensitive) name, so
+// adding, removing, or filtering other categories never recolors it. Two unrelated categories may share a
+// tone, which is fine because every badge also shows its name.
+export const categoryTone = (category: string, toneCount: number) => hashName(categoryKey(category)) % toneCount;

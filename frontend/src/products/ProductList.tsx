@@ -1,19 +1,19 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { formatPrice } from '../lib/format';
-import { categoryIndex } from './categories';
+import { categoryTone } from './categories';
 import { CategoryBadge } from './CategoryBadge';
+import { CATEGORY_TONES } from './category-tones';
 import type { Product } from './product.types';
 
 interface ProductListProps {
   products: Product[];
-  categories: string[];
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
 }
 
 // One table for all widths: on md+ it sits in a single panel; below md each row becomes its own card.
-export function ProductList({ products, categories, onEdit, onDelete }: ProductListProps) {
+export function ProductList({ products, onEdit, onDelete }: ProductListProps) {
   return (
     <div className="md:overflow-hidden md:rounded-xl md:border md:border-line md:bg-surface md:shadow-xs">
       <table className="w-full text-left text-sm max-md:block">
@@ -46,7 +46,7 @@ export function ProductList({ products, categories, onEdit, onDelete }: ProductL
                 )}
               </td>
               <td className="px-4 py-3.5 whitespace-nowrap max-md:col-start-1 max-md:row-start-2 max-md:self-center max-md:p-0">
-                <CategoryBadge category={product.category} index={categoryIndex(categories, product.category)} />
+                <CategoryBadge category={product.category} tone={categoryTone(product.category, CATEGORY_TONES.length)} />
               </td>
               <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap tabular-nums text-ink max-md:col-start-2 max-md:row-start-1 max-md:p-0">
                 {formatPrice(product.price)}

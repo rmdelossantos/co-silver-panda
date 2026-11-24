@@ -91,7 +91,6 @@ export function ProductsPage() {
           ) : (
             <ProductList
               products={visibleProducts}
-              categories={categories}
               onEdit={setFormTarget}
               onDelete={setDeleteTarget}
             />
