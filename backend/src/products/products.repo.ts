@@ -11,6 +11,13 @@ interface ProductRow {
   updated_at: string;
 }
 
+// Letters/digits only, each token quoted, so user text cannot inject FTS5 query syntax.
+const toMatchQuery = (text: string) =>
+  [...new Set(text.toLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? [])]
+    .slice(0, 16)
+    .map((token) => `"${token}"`)
+    .join(' OR ');
+
 // Prices are stored as integer cents to avoid floating point drift.
 const toCents = (price: number) => Math.round(price * 100);
 
@@ -48,6 +55,14 @@ export function createProductsRepo(db: Db) {
   `);
   const deleteById = db.prepare<[number]>('DELETE FROM products WHERE id = ?');
   const countAll = db.prepare<[], { count: number }>('SELECT COUNT(*) AS count FROM products');
+  // bm25 weights follow the FTS column order: name 5, category 3, description 1.
+  // `IS NOT ?` (not `!=`) so a null excludeId keeps every row.
+  const searchFts = db.prepare<[string, number | null, number], ProductRow>(`
+    SELECT p.* FROM products_fts JOIN products p ON p.id = products_fts.rowid
+    WHERE products_fts MATCH ? AND p.id IS NOT ?
+    ORDER BY bm25(products_fts, 5.0, 3.0, 1.0)
+    LIMIT ?
+  `);
 
   return {
     list(category?: string): Product[] {
@@ -77,6 +92,13 @@ export function createProductsRepo(db: Db) {
 
     remove(id: number): boolean {
       return deleteById.run(id).changes > 0;
+    },
+
+    // Products most similar to free text (name, category, description), best match first.
+    searchSimilar(text: string, { limit = 5, excludeId }: { limit?: number; excludeId?: number } = {}): Product[] {
+      const query = toMatchQuery(text);
+      if (!query) return []; // FTS5 rejects an empty MATCH (e.g. "A" or emoji-only text)
+      return searchFts.all(query, excludeId ?? null, limit).map(toProduct);
     },
 
     count(): number {
