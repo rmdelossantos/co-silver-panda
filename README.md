@@ -46,7 +46,7 @@ The app also handles loading, empty, and error states, shows toast confirmations
 │   ├── src/
 │   │   ├── app.ts               createApp(db): middleware, routes, error handling
 │   │   ├── server.ts            opens the DB, seeds it, starts listening
-│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH
+│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH, STATIC_DIR
 │   │   ├── db/                  SQLite connection, schema, sample data
 │   │   ├── products/            zod schema, repository (SQL), router
 │   │   └── middleware/          body validation, HttpError, error handler
@@ -58,8 +58,44 @@ The app also handles loading, empty, and error states, shows toast confirmations
 │       ├── products/            page, list, filter, form, dialogs, hooks, tests
 │       └── test/                MSW server, fixtures, render helpers
 ├── docs/screenshots/
-└── .github/workflows/ci.yml     lint, typecheck, test, and build for both packages
+├── Dockerfile                   multi-stage: build UI + API, slim non-root runtime
+├── compose.yaml                 run the production image locally
+├── compose.dev.yaml             full dev stack in containers with hot reload
+└── .github/workflows/
+    ├── ci.yml                   lint, typecheck, test, build; Docker build + smoke test
+    └── docker-publish.yml       push the image to GHCR from main and version tags
 ```
+
+## Run with Docker
+
+The quickest way to run everything, with only [Docker](https://docs.docker.com/get-docker/) installed.
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:3000. One container serves the UI and the API from the same origin, and the SQLite data is kept in the `catalog-data` volume across restarts. Use `docker compose down -v` to reset the data. Set `APP_PORT=8080` to use a different host port.
+
+**Development in Docker (hot reload):**
+
+```bash
+docker compose -f compose.dev.yaml up --build
+```
+
+Open http://localhost:5173. Edits to `backend/src` restart the API and edits to `frontend/src` hot-reload the UI. `node_modules` lives in container volumes, so native modules are built for Linux, and nothing has to be installed on the host.
+
+**Deploying the image.** The image is a standard, environment-configured container, so it runs on any container platform (Render, Fly.io, Railway, Cloud Run, ECS, Kubernetes):
+
+```bash
+docker build -t product-catalog .
+docker run -d -p 3000:3000 -v catalog-data:/data product-catalog
+```
+
+- **Configuration:** listens on `PORT` (default 3000). Data goes to `DB_PATH` (default `/data/catalog.db`); mount a volume at `/data` to keep it.
+- **Health check:** `GET /api/health`, also built into the image as a `HEALTHCHECK`.
+- **Runs as** the non-root `node` user, and shuts down cleanly on `SIGTERM`: it finishes in-flight requests and closes the database.
+- **Published images:** after a merge to `main` (or a `v*` tag), CI publishes `ghcr.io/rmdelossantos/co-silver-panda` for amd64 and arm64.
+- **Scaling:** SQLite is a single file, so run **one** replica with a persistent volume. To scale out, move the repository layer to Postgres (see Design decisions).
 
 ## Run locally
 
@@ -93,7 +129,8 @@ Open http://localhost:5173. The Vite dev server forwards `/api/*` requests to th
 |---|---|---|
 | `PORT` | `3000` | API port |
 | `CORS_ORIGIN` | `http://localhost:5173` | Origin allowed to call the API from a browser |
-| `DB_PATH` | `data/catalog.db` | SQLite file location (`:memory:` for a throwaway DB) |
+| `DB_PATH` | `data/catalog.db` | SQLite file location (`:memory:` for a throwaway DB). The Docker image uses `/data/catalog.db` |
+| `STATIC_DIR` | unset | Directory of the built frontend to serve with the API (set to `/app/public` in the Docker image) |
 
 See `backend/.env.example`. If you change `PORT`, also update the proxy target in `frontend/vite.config.ts`.
 
@@ -169,11 +206,13 @@ The app was built in small pull requests, one concern at a time, each with CI:
 5. [#5](https://github.com/rmdelossantos/co-silver-panda/pull/5) Add and edit form with validation
 6. [#6](https://github.com/rmdelossantos/co-silver-panda/pull/6) Delete, list states, toasts
 7. [#7](https://github.com/rmdelossantos/co-silver-panda/pull/7) UI polish: design tokens, accessibility, refined states
-8. This README
+8. [#8](https://github.com/rmdelossantos/co-silver-panda/pull/8) README
+9. [#9](https://github.com/rmdelossantos/co-silver-panda/pull/9) Design critique follow-ups: focus, unsaved edits, long input, copy, stable colors
+10. [#10](https://github.com/rmdelossantos/co-silver-panda/pull/10) Docker: production image, Compose for local and dev, CI smoke test, GHCR publishing
 
 ## Possible improvements
 
-- Deploy the app online for a live demo, for example with Express serving the built frontend on a single host.
+- Deploy the Docker image online for a live demo, on a platform with a persistent volume.
 - AI assistance: suggest a category and description from the product name.
 - Search by name, sorting, and pagination for larger catalogs.
 - A dedicated categories table if categories need their own management.
