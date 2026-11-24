@@ -12,6 +12,8 @@
   --color-ink-subtle: oklch(0.56 0.016 250);
   --color-line: oklch(0.925 0.006 250);
   --color-line-strong: oklch(0.86 0.01 250);
+  /* Form control edges: 3.1:1 on white (WCAG 1.4.11 non-text contrast). */
+  --color-control: oklch(0.66 0.012 250);
   --color-hover: oklch(0.965 0.005 250);
 
   --color-accent: oklch(0.46 0.085 190);

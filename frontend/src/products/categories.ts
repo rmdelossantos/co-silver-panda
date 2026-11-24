@@ -16,6 +16,10 @@ export function filterByCategory(products: Product[], category: string | null): 
   return products.filter((p) => sameCategory(p.category, category));
 }
 
+export function categoryIndex(categories: string[], category: string): number {
+  return categories.findIndex((c) => sameCategory(c, category));
+}
+
 // Returns the matching category as listed, or null ("All") if it no longer exists.
 export function resolveCategory(categories: string[], category: string | null): string | null {
   if (!category) return null;

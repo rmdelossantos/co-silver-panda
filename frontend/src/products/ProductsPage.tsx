@@ -55,7 +55,12 @@ export function ProductsPage() {
           (products.length === 0 ? (
             <EmptyState onAdd={() => setFormTarget('new')} />
           ) : (
-            <ProductList products={visibleProducts} onEdit={setFormTarget} onDelete={setDeleteTarget} />
+            <ProductList
+              products={visibleProducts}
+              categories={categories}
+              onEdit={setFormTarget}
+              onDelete={setDeleteTarget}
+            />
           ))}
       </div>
 

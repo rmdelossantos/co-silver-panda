@@ -17,7 +17,11 @@ export function Dialog({ open, title, onClose, children }: DialogProps) {
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // Native dialogs focus the first control (the close button); prefer a marked element instead.
+      dialog.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 

@@ -52,7 +52,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
 
   return (
     <form noValidate onSubmit={submit} className="space-y-5">
-      <Field label="Name" error={errors.name} registration={register('name')} autoComplete="off" />
+      <Field label="Name" error={errors.name} registration={register('name')} autoComplete="off" autoFocusOnOpen />
       <Field
         label="Price (USD)"
         error={errors.price}
@@ -101,9 +101,10 @@ interface FieldProps {
   list?: string;
   autoComplete?: string;
   prefix?: string;
+  autoFocusOnOpen?: boolean;
 }
 
-function Field({ label, error, registration, multiline, prefix, ...inputProps }: FieldProps) {
+function Field({ label, error, registration, multiline, prefix, autoFocusOnOpen, ...inputProps }: FieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
   const className = `${controlClass} ${controlStateClass(!!error)}`;
@@ -128,6 +129,7 @@ function Field({ label, error, registration, multiline, prefix, ...inputProps }:
             className={`${className} ${prefix ? 'pl-7 tabular-nums' : ''}`}
             {...a11y}
             {...inputProps}
+            data-autofocus={autoFocusOnOpen || undefined}
             {...registration}
           />
         </div>

@@ -45,7 +45,9 @@ export function ConfirmDeleteDialog({ product, onClose }: ConfirmDeleteDialogPro
       )}
 
       <div className="mt-6 flex justify-end gap-2">
-        <Button onClick={close}>Cancel</Button>
+        <Button onClick={close} data-autofocus>
+          Cancel
+        </Button>
         <Button variant="danger" onClick={confirm} disabled={deleteProduct.isPending}>
           {deleteProduct.isPending ? 'Deleting…' : 'Delete'}
         </Button>
