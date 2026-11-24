@@ -1,10 +1,12 @@
 import { createApp } from './app.js';
+import { createSessionsRepo } from './auth/sessions.repo.js';
 import { openDb } from './db/client.js';
 import { seedIfEmpty } from './db/seed.js';
 import { env } from './env.js';
 import { createProductsRepo } from './products/products.repo.js';
 
 const db = openDb(env.DB_PATH);
+createSessionsRepo(db).removeExpired();
 
 const seeded = seedIfEmpty(createProductsRepo(db));
 if (seeded) console.log(`Seeded ${seeded} sample products`);

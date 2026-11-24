@@ -15,6 +15,22 @@ const schema = `
     updated_at  TEXT    NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_products_category ON products (category COLLATE NOCASE);
+
+  CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT NOT NULL UNIQUE COLLATE NOCASE CHECK (length(email) BETWEEN 3 AND 254),
+    name          TEXT NOT NULL CHECK (length(name) BETWEEN 1 AND 100),
+    password_hash TEXT NOT NULL,
+    created_at    TEXT NOT NULL
+  );
+  -- Only sha256(token) is stored; the raw token exists solely in the user's cookie.
+  CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
 `;
 
 // Pass ':memory:' for an isolated in-memory database (used by tests).
@@ -23,6 +39,7 @@ export function openDb(path: string): Db {
 
   const db = new Database(path);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   db.exec(schema);
   return db;
 }
