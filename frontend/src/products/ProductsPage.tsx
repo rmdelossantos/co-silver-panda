@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
-import { useSearchParam } from '../lib/useSearchParam';
+import { useSearchParam, writeSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
@@ -23,6 +23,13 @@ export function ProductsPage() {
   const categories = useMemo(() => getCategories(products ?? []), [products]);
   const category = resolveCategory(categories, requestedCategory);
   const visibleProducts = useMemo(() => filterByCategory(products ?? [], category), [products, category]);
+  // A requested category with no products (last one deleted, or an old shared link) falls back to "All".
+  const missingCategory = products && requestedCategory && !category ? requestedCategory : null;
+
+  // Drop the stale ?category= so the URL matches what is shown; the summary explains the fallback.
+  useEffect(() => {
+    if (missingCategory) writeSearchParam('category', null);
+  }, [missingCategory]);
 
   const handleDeleted = (deleted: Product) => {
     const index = visibleProducts.findIndex((p) => p.id === deleted.id);
@@ -39,7 +46,8 @@ export function ProductsPage() {
     return nextEdit ?? headingRef.current;
   }, []);
 
-  const summary = products && summarize(products.length, visibleProducts.length, categories.length, category);
+  const summary =
+    products && summarize(products.length, visibleProducts.length, categories.length, category, missingCategory);
 
   return (
     <section aria-labelledby="products-heading">
@@ -100,8 +108,15 @@ export function ProductsPage() {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-function summarize(total: number, visible: number, categoryCount: number, category: string | null) {
+function summarize(
+  total: number,
+  visible: number,
+  categoryCount: number,
+  category: string | null,
+  missingCategory: string | null,
+) {
   if (total === 0) return 'Your catalog is empty';
+  if (missingCategory) return `No products in ${missingCategory}. Showing all categories instead.`;
   if (category) return `${visible} of ${plural(total, 'product', 'products')} in ${category}`;
   return `${plural(total, 'product', 'products')} across ${plural(categoryCount, 'category', 'categories')}`;
 }

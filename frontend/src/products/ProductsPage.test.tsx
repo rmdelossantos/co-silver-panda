@@ -76,6 +76,8 @@ describe('ProductsPage', () => {
 
     expect(rowNames()).toHaveLength(3);
     expect(screen.getByLabelText('Category')).toHaveValue('');
+    expect(screen.getByText('No products in Garden. Showing all categories instead.')).toBeInTheDocument();
+    expect(window.location.search).toBe('');
   });
 
   it('summarises the catalog and the active filter', async () => {

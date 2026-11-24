@@ -66,6 +66,19 @@ describe('delete product', () => {
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Products' })).toHaveFocus());
   });
 
+  it('explains the fallback and clears the URL when the filtered category loses its last product', async () => {
+    window.history.replaceState(null, '', '/?category=Kitchen');
+    mockApi([makeProduct({ id: 1, name: 'Skillet', category: 'Kitchen' }), makeProduct({ id: 2, name: 'Lamp', category: 'Home' })]);
+    renderWithQueryClient(<ProductsPage />);
+
+    const dialog = await openDeleteDialog('Skillet');
+    await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    expect(await screen.findByText('No products in Kitchen. Showing all categories instead.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Delete Lamp' })).toBeInTheDocument();
+    expect(window.location.search).toBe('');
+  });
+
   it('does nothing when cancelled', async () => {
     const deleted = mockApi([makeProduct({ id: 1, name: 'Mouse' })]);
     renderWithQueryClient(<ProductsPage />);

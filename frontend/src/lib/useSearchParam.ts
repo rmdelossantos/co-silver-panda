@@ -2,6 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 const read = (key: string) => new URLSearchParams(window.location.search).get(key);
 
+// Rewrites one query-string value in place, without adding a history entry.
+export function writeSearchParam(key: string, value: string | null) {
+  const url = new URL(window.location.href);
+  if (value) url.searchParams.set(key, value);
+  else url.searchParams.delete(key);
+  window.history.replaceState(window.history.state, '', url);
+}
+
 // A single query-string value as state. Updates replace the current history entry.
 export function useSearchParam(key: string) {
   const [value, setValue] = useState(() => read(key));
@@ -14,10 +22,7 @@ export function useSearchParam(key: string) {
 
   const update = useCallback(
     (next: string | null) => {
-      const url = new URL(window.location.href);
-      if (next) url.searchParams.set(key, next);
-      else url.searchParams.delete(key);
-      window.history.replaceState(window.history.state, '', url);
+      writeSearchParam(key, next);
       setValue(next);
     },
     [key],
