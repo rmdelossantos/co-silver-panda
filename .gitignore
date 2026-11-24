@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.angular/
+coverage/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Local database
+*.db
+*.sqlite
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# AI tooling (Claude skills, Impeccable)
+skills/
+.claude/
+.impeccable/
+.impeccable*
