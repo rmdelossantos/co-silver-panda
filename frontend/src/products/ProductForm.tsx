@@ -47,17 +47,17 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
 
   const descriptionLength = useWatch({ control, name: 'description' }).length;
 
+  const keepEditing = () => {
+    setConfirmingDiscard(false);
+    cancelRef.current?.focus(); // the prompt held focus; don't let it fall to <body> as the prompt unmounts
+  };
+
   const requestClose = () => {
-    if (confirmingDiscard) setConfirmingDiscard(false); // a second Esc means "keep editing"
+    if (confirmingDiscard) keepEditing(); // a second Esc means "keep editing"
     else if (isDirty) setConfirmingDiscard(true);
     else onCancel();
   };
   useImperativeHandle(ref, () => ({ requestClose }));
-
-  const keepEditing = () => {
-    setConfirmingDiscard(false);
-    cancelRef.current?.focus();
-  };
 
   const submit = handleSubmit(async (input) => {
     try {

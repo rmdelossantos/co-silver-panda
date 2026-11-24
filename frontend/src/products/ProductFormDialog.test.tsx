@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
@@ -160,6 +160,40 @@ describe('add product', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Name')).toHaveValue('Draft');
     expect(within(dialog).queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
+  });
+
+  it('returns focus to Cancel when a second Esc dismisses the discard prompt', async () => {
+    mockApi([makeProduct()]);
+    renderWithQueryClient(<ProductsPage />);
+    const dialog = await openAddForm();
+    await user.type(within(dialog).getByLabelText('Name'), 'Draft');
+
+    fireEvent(dialog, new Event('cancel', { cancelable: true })); // Esc: shows the prompt
+    expect(within(dialog).getByRole('button', { name: 'Keep editing' })).toHaveFocus();
+    fireEvent(dialog, new Event('cancel', { cancelable: true })); // Esc again: keep editing
+
+    expect(within(dialog).queryByText('Discard unsaved changes?')).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+    expect(within(dialog).getByLabelText('Name')).toHaveValue('Draft');
+  });
+
+  it('does not snap back to a cleared category filter when that category reappears', async () => {
+    window.history.replaceState(null, '', '/?category=Toys');
+    mockApi([makeProduct({ id: 1, name: 'Lamp', category: 'Home' })]);
+    renderWithQueryClient(<ProductsPage />);
+    expect(await screen.findByText('No products in Toys. Showing all categories instead.')).toBeInTheDocument();
+
+    const dialog = await openAddForm();
+    await user.type(within(dialog).getByLabelText('Name'), 'Kite');
+    await user.type(within(dialog).getByLabelText('Price (USD)'), '15');
+    await user.type(within(dialog).getByLabelText('Category'), 'Toys');
+    await user.click(within(dialog).getByRole('button', { name: 'Add product' }));
+
+    expect(await screen.findByText('Kite')).toBeInTheDocument();
+    expect(screen.getByText('Lamp')).toBeInTheDocument(); // still showing all, not re-filtered to Toys
+    expect(screen.getByLabelText('Category')).toHaveValue('');
+    expect(screen.queryByText(/No products in Toys/)).not.toBeInTheDocument();
+    expect(window.location.search).toBe('');
   });
 
   it('discards unsaved changes from the close button after confirming', async () => {

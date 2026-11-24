@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
-import { useSearchParam, writeSearchParam } from '../lib/useSearchParam';
+import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
 import { CategoryFilter } from './CategoryFilter';
 import { ConfirmDeleteDialog } from './ConfirmDeleteDialog';
@@ -14,6 +14,8 @@ import { useProducts } from './useProducts';
 export function ProductsPage() {
   const { data: products, isPending, isError, error, refetch } = useProducts();
   const [requestedCategory, setRequestedCategory] = useSearchParam('category');
+  // The category we fell back from, kept so the summary can explain why "All" is showing.
+  const [fallbackFrom, setFallbackFrom] = useState<string | null>(null);
   const [formTarget, setFormTarget] = useState<Product | 'new' | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   // Where keyboard focus goes after a delete removes the row that opened the dialog.
@@ -24,12 +26,18 @@ export function ProductsPage() {
   const category = resolveCategory(categories, requestedCategory);
   const visibleProducts = useMemo(() => filterByCategory(products ?? [], category), [products, category]);
   // A requested category with no products (last one deleted, or an old shared link) falls back to "All".
+  // Reset it during render so it can't silently re-apply if that category reappears later.
   const missingCategory = products && requestedCategory && !category ? requestedCategory : null;
+  if (missingCategory) {
+    setFallbackFrom(missingCategory);
+    setRequestedCategory(null);
+  }
+  const fallbackNotice = fallbackFrom && !resolveCategory(categories, fallbackFrom) ? fallbackFrom : null;
 
-  // Drop the stale ?category= so the URL matches what is shown; the summary explains the fallback.
-  useEffect(() => {
-    if (missingCategory) writeSearchParam('category', null);
-  }, [missingCategory]);
+  const changeCategory = (next: string | null) => {
+    setFallbackFrom(null);
+    setRequestedCategory(next);
+  };
 
   const handleDeleted = (deleted: Product) => {
     const index = visibleProducts.findIndex((p) => p.id === deleted.id);
@@ -47,7 +55,7 @@ export function ProductsPage() {
   }, []);
 
   const summary =
-    products && summarize(products.length, visibleProducts.length, categories.length, category, missingCategory);
+    products && summarize(products.length, visibleProducts.length, categories.length, category, fallbackNotice);
 
   return (
     <section aria-labelledby="products-heading">
@@ -76,7 +84,7 @@ export function ProductsPage() {
 
       {products && products.length > 0 && (
         <div className="mt-6">
-          <CategoryFilter categories={categories} value={category} onChange={setRequestedCategory} />
+          <CategoryFilter categories={categories} value={category} onChange={changeCategory} />
         </div>
       )}
 
