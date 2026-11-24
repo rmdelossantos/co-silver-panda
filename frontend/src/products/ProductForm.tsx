@@ -39,7 +39,8 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
     control,
     handleSubmit,
     setError,
-    formState: { errors, isSubmitting, isDirty },
+    getValues,
+    formState: { errors, isSubmitting },
   } = useForm<ProductFormValues, unknown, ProductInput>({
     resolver: zodResolver(productFormSchema),
     defaultValues: toFormValues(product),
@@ -52,9 +53,17 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
     cancelRef.current?.focus(); // the prompt held focus; don't let it fall to <body> as the prompt unmounts
   };
 
+  // Read the live field values rather than formState.isDirty, which only updates on the next render and
+  // would miss an Esc pressed immediately after typing.
+  const hasUnsavedChanges = () => {
+    const initial = toFormValues(product);
+    const current = getValues();
+    return (Object.keys(initial) as (keyof ProductFormValues)[]).some((field) => current[field] !== initial[field]);
+  };
+
   const requestClose = () => {
     if (confirmingDiscard) keepEditing(); // a second Esc means "keep editing"
-    else if (isDirty) setConfirmingDiscard(true);
+    else if (hasUnsavedChanges()) setConfirmingDiscard(true);
     else onCancel();
   };
   useImperativeHandle(ref, () => ({ requestClose }));

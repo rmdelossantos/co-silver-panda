@@ -34,6 +34,7 @@ export function ProductFormDialog({ target, categories, onClose }: ProductFormDi
       open={target !== null}
       title={product ? 'Edit product' : 'Add product'}
       onClose={() => formRef.current?.requestClose()}
+      onForcedClose={onClose}
     >
       <ProductForm
         key={product?.id ?? 'new'}

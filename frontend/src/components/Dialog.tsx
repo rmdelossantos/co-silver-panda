@@ -9,10 +9,13 @@ interface DialogProps {
   children: ReactNode;
   // Element to focus after closing, when the browser's default (the opener) may no longer exist.
   finalFocus?: () => HTMLElement | null;
+  // The browser can close a modal itself (e.g. Chrome on a repeated Esc it won't let the page cancel).
+  // Called so React state follows; defaults to onClose.
+  onForcedClose?: () => void;
 }
 
 // Native modal <dialog>: focus trapping, Esc to close, and the backdrop come from the browser.
-export function Dialog({ open, title, onClose, children, finalFocus }: DialogProps) {
+export function Dialog({ open, title, onClose, children, finalFocus, onForcedClose }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
@@ -37,6 +40,10 @@ export function Dialog({ open, title, onClose, children, finalFocus }: DialogPro
       onCancel={(e) => {
         e.preventDefault();
         onClose();
+      }}
+      onClose={() => {
+        // Fires after our own close() too, when `open` is already false; only react to the browser closing it.
+        if (open) (onForcedClose ?? onClose)();
       }}
       className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-line bg-surface p-0 text-ink shadow-overlay backdrop:bg-ink/35"
     >

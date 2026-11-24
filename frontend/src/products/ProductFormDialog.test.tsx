@@ -177,6 +177,20 @@ describe('add product', () => {
     expect(within(dialog).getByLabelText('Name')).toHaveValue('Draft');
   });
 
+  it('stays usable after the browser force-closes the dialog (e.g. Chrome on a repeated Esc)', async () => {
+    mockApi([makeProduct()]);
+    renderWithQueryClient(<ProductsPage />);
+    const dialog = await openAddForm();
+    await user.type(within(dialog).getByLabelText('Name'), 'Draft');
+
+    (dialog as HTMLDialogElement).open = false;
+    fireEvent(dialog, new Event('close'));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add product' }));
+    expect(screen.getByRole('dialog', { name: 'Add product' })).toBeInTheDocument();
+  });
+
   it('does not snap back to a cleared category filter when that category reappears', async () => {
     window.history.replaceState(null, '', '/?category=Toys');
     mockApi([makeProduct({ id: 1, name: 'Lamp', category: 'Home' })]);
