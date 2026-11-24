@@ -78,6 +78,17 @@ describe('ProductsPage', () => {
     expect(screen.getByLabelText('Category')).toHaveValue('');
   });
 
+  it('summarises the catalog and the active filter', async () => {
+    respondWith(products);
+    renderWithQueryClient(<ProductsPage />);
+
+    expect(await screen.findByText('3 products across 2 categories')).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Category'), 'Electronics');
+
+    expect(screen.getByText('2 of 3 products in Electronics')).toBeInTheDocument();
+  });
+
   it('shows an empty state when there are no products', async () => {
     respondWith([]);
 
