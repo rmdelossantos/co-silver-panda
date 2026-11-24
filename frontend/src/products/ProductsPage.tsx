@@ -49,7 +49,7 @@ export function ProductsPage() {
         (products.length === 0 ? (
           <p className="text-gray-500">No products yet.</p>
         ) : (
-          <ProductList products={visibleProducts} />
+          <ProductList products={visibleProducts} onEdit={setFormTarget} />
         ))}
 
       <ProductFormDialog target={formTarget} categories={categories} onClose={() => setFormTarget(null)} />

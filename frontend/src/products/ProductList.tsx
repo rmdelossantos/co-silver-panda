@@ -3,10 +3,11 @@ import type { Product } from './product.types';
 
 interface ProductListProps {
   products: Product[];
+  onEdit: (product: Product) => void;
 }
 
 // One table for all widths: rows collapse into stacked cards below the md breakpoint.
-export function ProductList({ products }: ProductListProps) {
+export function ProductList({ products, onEdit }: ProductListProps) {
   return (
     <table className="w-full text-left text-sm max-md:block">
       <thead className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500 max-md:sr-only">
@@ -14,6 +15,9 @@ export function ProductList({ products }: ProductListProps) {
           <th scope="col" className="px-4 py-3 font-medium">Name</th>
           <th scope="col" className="px-4 py-3 font-medium">Category</th>
           <th scope="col" className="px-4 py-3 text-right font-medium">Price</th>
+          <th scope="col" className="px-4 py-3 text-right font-medium">
+            <span className="sr-only">Actions</span>
+          </th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100 max-md:block max-md:space-y-3 max-md:divide-y-0">
@@ -33,6 +37,16 @@ export function ProductList({ products }: ProductListProps) {
             </td>
             <td className="px-4 py-3 text-right tabular-nums font-medium text-gray-900 max-md:p-0">
               {formatPrice(product.price)}
+            </td>
+            <td className="px-4 py-3 text-right max-md:order-last max-md:col-span-2 max-md:p-0 max-md:pt-2 max-md:text-left">
+              <button
+                type="button"
+                onClick={() => onEdit(product)}
+                aria-label={`Edit ${product.name}`}
+                className="rounded-md px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                Edit
+              </button>
             </td>
           </tr>
         ))}
