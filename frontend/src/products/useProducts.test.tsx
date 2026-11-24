@@ -1,18 +1,10 @@
-import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import type { ReactNode } from 'react';
 import { expect, it } from 'vitest';
-import { createQueryClient } from '../lib/query-client';
 import { makeProduct } from '../test/fixtures';
+import { createWrapper } from '../test/render';
 import { server } from '../test/server';
 import { useCreateProduct, useProducts } from './useProducts';
-
-function wrapper({ children }: { children: ReactNode }) {
-  const client = createQueryClient();
-  client.setDefaultOptions({ queries: { retry: false } });
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-}
 
 it('refetches the product list after a successful create', async () => {
   let products = [makeProduct({ id: 1, name: 'First' })];
@@ -25,7 +17,7 @@ it('refetches the product list after a successful create', async () => {
     }),
   );
 
-  const { result } = renderHook(() => ({ list: useProducts(), create: useCreateProduct() }), { wrapper });
+  const { result } = renderHook(() => ({ list: useProducts(), create: useCreateProduct() }), { wrapper: createWrapper() });
   await waitFor(() => expect(result.current.list.data).toHaveLength(1));
 
   await act(() => result.current.create.mutateAsync({ name: 'Second', price: 5, category: 'Home', description: '' }));
