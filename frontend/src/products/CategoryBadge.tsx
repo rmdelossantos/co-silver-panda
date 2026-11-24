@@ -19,7 +19,11 @@ interface CategoryBadgeProps {
 export function CategoryBadge({ category, index }: CategoryBadgeProps) {
   const tone = tones[Math.max(index, 0) % tones.length];
   return (
-    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${tone}`}>
+    // Long names truncate on one line; the full name stays available as a tooltip and to screen readers.
+    <span
+      title={category}
+      className={`inline-block max-w-44 truncate rounded-md px-2 py-0.5 align-middle text-xs font-medium ring-1 ring-inset ${tone}`}
+    >
       {category}
     </span>
   );

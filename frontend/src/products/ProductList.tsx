@@ -37,18 +37,18 @@ export function ProductList({ products, categories, onEdit, onDelete }: ProductL
           {products.map((product) => (
             <tr
               key={product.id}
-              className="transition-colors md:hover:bg-hover/60 max-md:grid max-md:grid-cols-[1fr_auto] max-md:gap-x-3 max-md:gap-y-2.5 max-md:rounded-xl max-md:border max-md:border-line max-md:bg-surface max-md:p-4 max-md:shadow-xs"
+              className="transition-colors md:hover:bg-hover/60 max-md:grid max-md:grid-cols-[minmax(0,1fr)_auto] max-md:gap-x-3 max-md:gap-y-2.5 max-md:rounded-xl max-md:border max-md:border-line max-md:bg-surface max-md:p-4 max-md:shadow-xs"
             >
               <td className="py-3.5 pr-4 pl-5 max-md:p-0">
-                <div className="font-medium text-ink">{product.name}</div>
+                <div className="font-medium text-ink wrap-anywhere">{product.name}</div>
                 {product.description && (
-                  <div className="mt-0.5 line-clamp-2 max-w-prose text-ink-muted">{product.description}</div>
+                  <div className="mt-0.5 line-clamp-2 max-w-prose text-ink-muted wrap-anywhere">{product.description}</div>
                 )}
               </td>
-              <td className="px-4 py-3.5 max-md:col-start-1 max-md:row-start-2 max-md:self-center max-md:p-0">
+              <td className="px-4 py-3.5 whitespace-nowrap max-md:col-start-1 max-md:row-start-2 max-md:self-center max-md:p-0">
                 <CategoryBadge category={product.category} index={categoryIndex(categories, product.category)} />
               </td>
-              <td className="px-4 py-3.5 text-right font-medium tabular-nums text-ink max-md:col-start-2 max-md:row-start-1 max-md:p-0">
+              <td className="px-4 py-3.5 text-right font-medium whitespace-nowrap tabular-nums text-ink max-md:col-start-2 max-md:row-start-1 max-md:p-0">
                 {formatPrice(product.price)}
               </td>
               <td className="py-2 pr-3 pl-4 max-md:col-start-2 max-md:row-start-2 max-md:-my-1.5 max-md:-mr-2 max-md:p-0">
