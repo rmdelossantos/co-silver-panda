@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { Dialog } from '../components/Dialog';
 import { ProductForm } from './ProductForm';
 import type { Product, ProductInput } from './product.types';
@@ -16,8 +17,13 @@ export function ProductFormDialog({ target, categories, onClose }: ProductFormDi
   const product = target === 'new' ? undefined : (target ?? undefined);
 
   const save = async (input: ProductInput) => {
-    if (product) await updateProduct.mutateAsync({ id: product.id, input });
-    else await createProduct.mutateAsync(input);
+    if (product) {
+      const updated = await updateProduct.mutateAsync({ id: product.id, input });
+      toast.success(`Saved changes to “${updated.name}”`);
+    } else {
+      const created = await createProduct.mutateAsync(input);
+      toast.success(`Added “${created.name}”`);
+    }
     onClose();
   };
 

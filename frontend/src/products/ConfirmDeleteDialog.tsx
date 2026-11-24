@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { Dialog } from '../components/Dialog';
 import { ApiError } from '../lib/api-client';
 import type { Product } from './product.types';
@@ -20,9 +21,11 @@ export function ConfirmDeleteDialog({ product, onClose }: ConfirmDeleteDialogPro
     if (!product) return;
     try {
       await deleteProduct.mutateAsync(product.id);
+      toast.success(`Deleted “${product.name}”`);
     } catch (error) {
       // Already gone (e.g. deleted in another tab) counts as done.
       if (!(error instanceof ApiError && error.status === 404)) return;
+      toast.info(`“${product.name}” was already deleted`);
     }
     close();
   };

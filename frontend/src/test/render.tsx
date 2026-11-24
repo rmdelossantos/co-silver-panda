@@ -1,6 +1,7 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import type { ReactElement, ReactNode } from 'react';
+import { Toaster } from 'sonner';
 import { createQueryClient } from '../lib/query-client';
 
 function createTestQueryClient() {
@@ -12,7 +13,10 @@ function createTestQueryClient() {
 export function createWrapper() {
   const client = createTestQueryClient();
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    <QueryClientProvider client={client}>
+      {children}
+      <Toaster />
+    </QueryClientProvider>
   );
 }
 
