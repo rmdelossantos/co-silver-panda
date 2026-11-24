@@ -1,0 +1,21 @@
+# Keep the build context small and free of local state
+**/node_modules
+**/dist
+**/coverage
+**/.angular
+**/*.log
+backend/data
+**/*.db
+**/*.db-*
+**/.env
+**/.env.*
+!**/.env.example
+
+# Not needed in the image
+.git
+.github
+docs
+*.md
+skills
+.claude
+.impeccable*
