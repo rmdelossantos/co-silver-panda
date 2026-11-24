@@ -96,9 +96,10 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
       <Field label="Description (optional)" error={errors.description} registration={register('description')} multiline />
 
       {errors.root && (
-        <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
-          {errors.root.message}
-        </p>
+        <div role="alert" className="rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">
+          <p className="font-medium">{product ? 'Your changes weren’t saved.' : 'The product wasn’t added.'}</p>
+          <p className="mt-0.5">{errors.root.message}</p>
+        </div>
       )}
 
       {confirmingDiscard && (

@@ -55,10 +55,30 @@ describe('productsApi', () => {
     expect(error).toMatchObject({ status: 400, message: 'Validation failed', details });
   });
 
-  it('throws ApiError with a fallback message when the body is not JSON', async () => {
-    server.use(http.get('/api/products', () => new HttpResponse('oops', { status: 502 })));
+  it('replaces server-fault messages with plain language', async () => {
+    server.use(
+      http.get('/api/products', () => HttpResponse.json({ error: { message: 'Internal server error' } }, { status: 500 })),
+    );
 
-    await expect(productsApi.list()).rejects.toMatchObject({ status: 502, message: 'Request failed (502)' });
+    await expect(productsApi.list()).rejects.toMatchObject({
+      status: 500,
+      message: 'The server ran into a problem. Try again in a moment.',
+    });
+  });
+
+  it('keeps client-error messages from the server, e.g. 404', async () => {
+    server.use(http.delete('/api/products/9', () => HttpResponse.json({ error: { message: 'Product not found' } }, { status: 404 })));
+
+    await expect(productsApi.remove(9)).rejects.toMatchObject({ status: 404, message: 'Product not found' });
+  });
+
+  it('falls back to a plain message when a non-JSON error has no message', async () => {
+    server.use(http.get('/api/products', () => new HttpResponse('oops', { status: 418 })));
+
+    await expect(productsApi.list()).rejects.toMatchObject({
+      status: 418,
+      message: 'The server sent an unexpected response. Try again in a moment.',
+    });
   });
 
   it('throws ApiError with status 0 on network failure', async () => {

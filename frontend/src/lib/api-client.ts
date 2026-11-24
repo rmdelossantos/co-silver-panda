@@ -37,7 +37,14 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
   const body: unknown = await res.json().catch(() => undefined);
   if (!res.ok) {
     const error = (body as ErrorBody | undefined)?.error;
-    throw new ApiError(res.status, error?.message ?? `Request failed (${res.status})`, error?.details);
+    throw new ApiError(res.status, messageFor(res.status, error?.message), error?.details);
   }
   return body as T;
+}
+
+// Server faults are never the user's to diagnose, so their raw text ("Internal server error") is replaced.
+// Client errors (400/404) carry messages written for people, e.g. "Product not found".
+function messageFor(status: number, serverMessage?: string): string {
+  if (status >= 500) return 'The server ran into a problem. Try again in a moment.';
+  return serverMessage ?? 'The server sent an unexpected response. Try again in a moment.';
 }

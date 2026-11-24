@@ -116,7 +116,9 @@ describe('add product', () => {
     await user.type(within(dialog).getByLabelText('Category'), 'Home');
     await user.click(within(dialog).getByRole('button', { name: 'Add product' }));
 
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Could not reach the server');
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent('The product wasn’t added.');
+    expect(alert).toHaveTextContent('Could not reach the server');
   });
 
   it('closes straight away on Cancel when nothing was typed', async () => {

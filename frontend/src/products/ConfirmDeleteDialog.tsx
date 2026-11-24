@@ -43,9 +43,10 @@ export function ConfirmDeleteDialog({ product, onClose, onDeleted, finalFocus }:
       </p>
 
       {deleteProduct.isError && (
-        <p role="alert" className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
-          {deleteProduct.error.message}
-        </p>
+        <div role="alert" className="mt-4 rounded-lg bg-danger-soft px-3 py-2.5 text-sm text-danger">
+          <p className="font-medium">The product wasn’t deleted.</p>
+          <p className="mt-0.5">{deleteProduct.error.message}</p>
+        </div>
       )}
 
       <div className="mt-6 flex justify-end gap-2">

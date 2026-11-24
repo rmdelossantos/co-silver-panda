@@ -100,7 +100,9 @@ describe('delete product', () => {
     const dialog = await openDeleteDialog('Mouse');
     await user.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
-    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Internal server error');
+    const alert = await within(dialog).findByRole('alert');
+    expect(alert).toHaveTextContent('The product wasn’t deleted.');
+    expect(alert).toHaveTextContent('The server ran into a problem. Try again in a moment.');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

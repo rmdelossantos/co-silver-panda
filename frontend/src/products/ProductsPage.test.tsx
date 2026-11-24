@@ -101,7 +101,10 @@ describe('ProductsPage', () => {
   it('shows the error and retries on request', async () => {
     respondWith({ error: { message: 'Database unavailable' } }, 500);
     renderWithQueryClient(<ProductsPage />);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Database unavailable');
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('Couldn’t load products');
+    expect(alert).toHaveTextContent('The server ran into a problem. Try again in a moment.');
+    expect(alert).not.toHaveTextContent('Database unavailable');
 
     respondWith(products);
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
