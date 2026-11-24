@@ -1,0 +1,11 @@
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  category: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProductInput = Pick<Product, 'name' | 'price' | 'category' | 'description'>;
