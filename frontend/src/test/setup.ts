@@ -7,5 +7,6 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   server.resetHandlers();
   cleanup();
+  window.history.replaceState(null, '', '/');
 });
 afterAll(() => server.close());
