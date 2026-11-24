@@ -51,6 +51,7 @@ describe('add product', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Add product' }));
 
     expect(await screen.findByText('Desk Mat')).toBeInTheDocument();
+    expect(screen.getByText('Added “Desk Mat”')).toBeInTheDocument();
     expect(requests).toEqual([
       { method: 'POST', body: { name: 'Desk Mat', price: 19.5, category: 'Home', description: '' } },
     ]);
@@ -150,6 +151,7 @@ describe('edit product', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Save changes' }));
 
     expect(await screen.findByText('$19.99')).toBeInTheDocument();
+    expect(screen.getByText('Saved changes to “Wireless Mouse”')).toBeInTheDocument();
     expect(requests).toEqual([
       { method: 'PUT', body: { name: 'Wireless Mouse', price: 19.99, category: 'Electronics', description: 'Quiet' } },
     ]);
