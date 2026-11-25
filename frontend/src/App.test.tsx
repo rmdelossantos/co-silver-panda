@@ -77,6 +77,42 @@ describe('App', () => {
     expect(screen.getByLabelText('Category')).toHaveValue('Kitchen');
   });
 
+  it('shows who is signed in', async () => {
+    serveProducts();
+
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByText('Sam Rivera')).toBeInTheDocument();
+    expect(screen.getByText('(sam@shop.example)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument();
+  });
+
+  it('signs out back to sign-in without refetching products', async () => {
+    let productRequests = 0;
+    server.use(
+      http.get('/api/products', () => (productRequests++, HttpResponse.json(products))),
+      http.post('/api/auth/sign-out', () => new HttpResponse(null, { status: 204 })),
+    );
+    renderWithQueryClient(<App />);
+    await screen.findByText('Wireless Mouse');
+
+    await user.click(screen.getByRole('button', { name: 'Sign out' }));
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(await screen.findByText('Signed out')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
+    expect(productRequests).toBe(1);
+  });
+
+  it('returns to sign-in with an explanation when the session ends mid-use', async () => {
+    server.use(http.get('/api/products', () => HttpResponse.json({ error: { message: 'Sign in to continue' } }, { status: 401 })));
+
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(await screen.findByText('Your session ended. Sign in again to continue.')).toBeInTheDocument();
+  });
+
   it('offers a retry, not sign-in, when the session check fails', async () => {
     server.use(http.get('/api/auth/me', () => HttpResponse.json({ error: { message: 'x' } }, { status: 500 })));
     renderWithQueryClient(<App />);

@@ -1,25 +1,18 @@
-import { Package, RotateCw } from 'lucide-react';
-import { Toaster } from 'sonner';
+import { RotateCw } from 'lucide-react';
 import { AuthScreen } from './auth/AuthScreen';
 import { useSession } from './auth/useSession';
 import { Button } from './components/Button';
+import { Header } from './components/Header';
 import { ProductsPage } from './products/ProductsPage';
 
 export default function App() {
+  const session = useSession();
   return (
     <>
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-2.5 px-4 sm:px-6">
-          <span className="grid size-7 place-items-center rounded-md bg-accent text-white" aria-hidden="true">
-            <Package className="size-4" strokeWidth={2.25} />
-          </span>
-          <h1 className="text-[0.9375rem] font-semibold tracking-tight">Product Catalog</h1>
-        </div>
-      </header>
+      <Header user={session.data?.user ?? null} />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         <SessionGate />
       </main>
-      <Toaster position="top-right" richColors closeButton toastOptions={{ style: { fontFamily: 'inherit' } }} />
     </>
   );
 }
