@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useId, useImperativeHandle, useRef, useState, type Ref } from 'react';
-import { useForm, useWatch, type FieldError, type UseFormRegisterReturn } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { Button } from '../components/Button';
-import { controlClass, controlStateClass } from '../components/field-styles';
+import { TextField } from '../components/TextField';
 import { ApiError } from '../lib/api-client';
 import { productFormSchema, type ProductFormValues } from './product.schema';
 import type { Product, ProductInput } from './product.types';
@@ -86,8 +86,8 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
 
   return (
     <form noValidate onSubmit={submit} className="space-y-5">
-      <Field label="Name" error={errors.name} registration={register('name')} autoComplete="off" autoFocusOnOpen />
-      <Field
+      <TextField label="Name" error={errors.name} registration={register('name')} autoComplete="off" autoFocusOnOpen />
+      <TextField
         label="Price (USD)"
         error={errors.price}
         registration={register('price')}
@@ -95,7 +95,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
         placeholder="0.00"
         prefix="$"
       />
-      <Field
+      <TextField
         label="Category"
         error={errors.category}
         registration={register('category')}
@@ -107,7 +107,7 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
           <option key={c} value={c} />
         ))}
       </datalist>
-      <Field
+      <TextField
         label="Description (optional)"
         error={errors.description}
         registration={register('description')}
@@ -148,82 +148,5 @@ export function ProductForm({ product, categories, submitLabel, onSubmit, onCanc
         </Button>
       </div>
     </form>
-  );
-}
-
-interface FieldProps {
-  label: string;
-  error?: FieldError;
-  registration: UseFormRegisterReturn;
-  multiline?: boolean;
-  inputMode?: 'decimal';
-  placeholder?: string;
-  list?: string;
-  autoComplete?: string;
-  prefix?: string;
-  autoFocusOnOpen?: boolean;
-  hint?: string;
-  hintOver?: boolean;
-}
-
-function Field({
-  label,
-  error,
-  registration,
-  multiline,
-  prefix,
-  autoFocusOnOpen,
-  hint,
-  hintOver,
-  ...inputProps
-}: FieldProps) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  const hintId = `${id}-hint`;
-  const describedBy = [error && errorId, hint && hintId].filter(Boolean).join(' ') || undefined;
-  const className = `${controlClass} ${controlStateClass(!!error)}`;
-  const a11y = { id, 'aria-invalid': !!error, 'aria-describedby': describedBy };
-
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-ink">
-        {label}
-      </label>
-      {multiline ? (
-        <textarea rows={3} className={`${className} h-auto resize-y py-2.5`} {...a11y} {...registration} />
-      ) : (
-        <div className="relative">
-          {prefix && (
-            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-ink-muted" aria-hidden="true">
-              {prefix}
-            </span>
-          )}
-          <input
-            type="text"
-            className={`${className} ${prefix ? 'pl-7 tabular-nums' : ''}`}
-            {...a11y}
-            {...inputProps}
-            data-autofocus={autoFocusOnOpen || undefined}
-            {...registration}
-          />
-        </div>
-      )}
-      {(error || hint) && (
-        <div className="flex items-start justify-between gap-3">
-          {error ? (
-            <p id={errorId} className="text-sm text-danger">
-              {error.message}
-            </p>
-          ) : (
-            <span />
-          )}
-          {hint && (
-            <p id={hintId} className={`shrink-0 text-xs tabular-nums ${hintOver ? 'text-danger' : 'text-ink-muted'}`}>
-              {hint}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
   );
 }

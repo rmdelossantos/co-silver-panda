@@ -12,6 +12,15 @@ services:
     environment:
       # Only needed if the UI is served from a different origin than the API.
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      # Local Compose serves plain HTTP, so the session cookie can't be Secure here. Behind HTTPS, set true.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # Set false once your team has accounts.
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-}
+      # Default admin account, created on first start if missing. Local defaults only: override these
+      # (or unset them) for any shared or public deploy. Changing them later doesn't alter an existing account.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password-123}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
     volumes:
       - catalog-data:/data
     restart: unless-stopped

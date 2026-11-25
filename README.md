@@ -10,6 +10,17 @@ A full-stack product catalog for managing products: add, view, filter by categor
   <img src="docs/screenshots/catalog-mobile-filtered.png" alt="Catalog filtered to Kitchen on a phone" width="30%">
 </p>
 
+## Signing in
+
+The catalog requires an account. Either way works:
+
+| Option | How |
+|---|---|
+| **Use the default admin** | Email **`admin@example.com`**, password **`admin-password-123`**. Created automatically on first start by `docker compose up` (both `compose.yaml` and `compose.dev.yaml`). |
+| **Create your own** | On the sign-in screen, choose **Create an account**: any name, any email (nothing is sent to it), and a password of at least 12 characters. |
+
+Running without Docker (`npm run dev`) doesn't create the admin unless you pass it in, for example `ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=admin-password-123 npm run dev` in `backend/`. You can also just create an account. The default admin is for local review only; see [Accounts and sign-in](#accounts-and-sign-in) for changing or turning it off.
+
 ## Features
 
 | Requirement | How it works |
@@ -20,6 +31,7 @@ A full-stack product catalog for managing products: add, view, filter by categor
 | Edit products | The pencil icon opens the same dialog, prefilled |
 | Delete products | The trash icon asks for confirmation before deleting |
 | Form validation | Required fields, numeric price, price above 0 and at most 1,000,000, at most 2 decimal places, and length limits. The same rules run on the server |
+| Accounts and sign-in | Create an account, sign in, stay signed in across reloads, sign out. The catalog is shared by everyone signed in and private to everyone else. See [Accounts and sign-in](#accounts-and-sign-in) |
 
 The app also handles loading, empty, and error states, shows toast confirmations, supports the keyboard (Esc closes dialogs, focus is managed when dialogs open and close), and lays out for phones.
 
@@ -46,14 +58,16 @@ The app also handles loading, empty, and error states, shows toast confirmations
 │   ├── src/
 │   │   ├── app.ts               createApp(db): middleware, routes, error handling
 │   │   ├── server.ts            opens the DB, seeds it, starts listening
-│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH, STATIC_DIR
-│   │   ├── db/                  SQLite connection, schema, sample data
+│   │   ├── env.ts               PORT, CORS_ORIGIN, DB_PATH, STATIC_DIR, auth settings (parsed strictly)
+│   │   ├── auth/                password hashing, users/sessions repos, auth routes, requireAuth
+│   │   ├── db/                  SQLite connection, schema (products, users, sessions), sample data
 │   │   ├── products/            zod schema, repository (SQL), router
 │   │   └── middleware/          body validation, HttpError, error handler
 │   └── test/                    Supertest API tests
 ├── frontend/                    React app
 │   └── src/
-│       ├── components/          Button, Dialog, shared form-control styles
+│       ├── auth/                session query, sign-in and create-account screens
+│       ├── components/          Button, Dialog, Header, TextField, shared form-control styles
 │       ├── lib/                 API client, query client, URL param hook, formatting
 │       ├── products/            page, list, filter, form, dialogs, hooks, tests
 │       └── test/                MSW server, fixtures, render helpers
@@ -74,7 +88,7 @@ The quickest way to run everything, with only [Docker](https://docs.docker.com/g
 docker compose up --build
 ```
 
-Open http://localhost:3000. One container serves the UI and the API from the same origin, and the SQLite data is kept in the `catalog-data` volume across restarts. Use `docker compose down -v` to reset the data. Set `APP_PORT=8080` to use a different host port.
+Open http://localhost:3000 and sign in with the default admin account, **`admin@example.com` / `admin-password-123`**, or create your own. One container serves the UI and the API from the same origin, and the SQLite data is kept in the `catalog-data` volume across restarts. Use `docker compose down -v` to reset the data. Set `APP_PORT=8080` to use a different host port.
 
 **Development in Docker (hot reload):**
 
@@ -131,6 +145,11 @@ Open http://localhost:5173. The Vite dev server forwards `/api/*` requests to th
 | `CORS_ORIGIN` | `http://localhost:5173` | Origin allowed to call the API from a browser |
 | `DB_PATH` | `data/catalog.db` | SQLite file location (`:memory:` for a throwaway DB). The Docker image uses `/data/catalog.db` |
 | `STATIC_DIR` | unset | Directory of the built frontend to serve with the API (set to `/app/public` in the Docker image) |
+| `ALLOW_SIGNUP` | `true` | Set `false` to close registration once your team has accounts |
+| `COOKIE_SECURE` | `true` when `NODE_ENV=production` | `Secure` flag on the session cookie. Compose and CI set `false` because they serve plain HTTP |
+| `TRUST_PROXY` | `false` | Behind a reverse proxy, a hop count such as `1` (or a subnet list), so rate limits see real client IPs. `true` is rejected |
+| `SESSION_TTL_HOURS` | `168` | How long a session lasts (fixed from sign-in) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | unset (Compose: `admin@example.com` / `admin-password-123` / `Admin`) | Default account created on first start if missing. Never overwritten, so changing these later doesn't reset an existing password |
 
 See `backend/.env.example`. If you change `PORT`, also update the proxy target in `frontend/vite.config.ts`.
 
@@ -154,6 +173,12 @@ Base URL: `http://localhost:3000/api`
 | `POST` | `/products` | `ProductInput` | `201 Product` | `400` validation |
 | `PUT` | `/products/:id` | `ProductInput` | `200 Product` | `400`, `404` |
 | `DELETE` | `/products/:id` | | `204` | `404` |
+| `POST` | `/auth/sign-up` | `{ email, name, password }` | `201 { user }` + session cookie | `400`, `404` sign-up off, `409` email taken, `429` |
+| `POST` | `/auth/sign-in` | `{ email, password }` | `200 { user }` + session cookie | `400`, `401`, `429` |
+| `POST` | `/auth/sign-out` | | `204`, session revoked | |
+| `GET` | `/auth/me` | | `200 { user: User \| null, signupEnabled }` | |
+
+All `/products` routes require a signed-in session and return `401 "Sign in to continue"` without one.
 
 ```ts
 // ProductInput
@@ -168,16 +193,18 @@ Base URL: `http://localhost:3000/api`
 ```
 
 ```bash
-curl -X POST localhost:3000/api/products \
-  -H 'content-type: application/json' \
+# Sign up (or sign in) once, keeping the session cookie in a jar, then call the API with it.
+curl -c jar -X POST localhost:3000/api/auth/sign-up -H 'content-type: application/json' \
+  -d '{"email":"you@example.com","name":"You","password":"a long passphrase"}'
+curl -b jar -X POST localhost:3000/api/products -H 'content-type: application/json' \
   -d '{"name":"Desk Mat","price":19.99,"category":"Home"}'
 ```
 
 ## Testing
 
 ```bash
-cd backend && npm test     # 35 API tests: every endpoint, validation rule, and error path
-cd frontend && npm test    # 47 tests: API client, hooks, filtering, form validation, CRUD flows
+cd backend && npm test     # 94 tests: every endpoint and error path, password hashing, sessions, auth, rate limits, 401s
+cd frontend && npm test    # 90 tests: API client, hooks, filtering, forms, CRUD flows, sign-in/up, session expiry
 ```
 
 Each package also has `npm run lint` and `npm run typecheck`. CI runs lint, typecheck, test, and build for both packages on every pull request.
@@ -194,6 +221,34 @@ Frontend tests render the real page and hooks against [MSW](https://mswjs.io) re
 - **Filtering happens on the client.** The list is already cached, so changing the filter is instant. The API's `?category=` filter is still available.
 - **Server state lives in TanStack Query.** After an add, edit, or delete, the list is fetched again from the server rather than patched locally, so it always matches the database.
 - **Dialogs use the native `<dialog>` element,** so focus trapping, Esc to close, and the backdrop come from the browser.
+
+## Accounts and sign-in
+
+![Sign-in screen](docs/screenshots/sign-in.png)
+
+The catalog is **shared**: everyone with an account sees and edits the same products, and nobody else can. Every `/api/products` route requires a signed-in session.
+
+**Flows:**
+
+- **Create account:** name, email, and a password of at least 12 characters.
+- **Sign in** and **sign out.** Sign-out revokes the session on the server.
+- **Session restore:** a reload keeps you signed in, and deep links such as `?category=Kitchen` survive signing in.
+- **Session expiry:** if a session ends while you're working, you're returned to sign-in with a message.
+
+**How it's built:**
+
+- **Sessions:** 32 random bytes in an `HttpOnly` `sid` cookie (`SameSite=Strict`, `Path=/api`, `Secure` in production, 7 days). The `sessions` table stores only `sha256(token)`, so sign-out is real revocation and a database leak exposes no usable tokens. Every sign-in issues a fresh session.
+- **Passwords:** `node:crypto` scrypt with the OWASP baseline (N=2^17, r=8, p=1, 16-byte salt), compared in constant time. The parameters are stored with each hash, so the cost can be raised later. Hashing is capped at 2 at a time, since each hash uses 128 MiB.
+- **CSRF:** the strict, `/api`-scoped cookie, plus CORS without credentials, means other sites can't make authenticated requests.
+- **Brute force:** failed sign-ins are limited to 20 per 15 minutes per **email** (so one account can't be guessed from many IPs) and 50 per 15 minutes per IP. Sign-ups are limited to 5 an hour per IP. Trade-off: someone can briefly block a victim's sign-in, which is still better than locking accounts.
+- **Enumeration:** a wrong password and an unknown email give the same message and take the same time. Sign-up does say when an email is taken (`409`), which can't be avoided without email verification.
+- **Caching:** auth and product responses are sent with `Cache-Control: private, no-store`.
+
+**Default admin:** set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`) and the account is created when the server first starts, if it doesn't exist yet. Docker Compose sets local defaults (`admin@example.com` / `admin-password-123`), so `docker compose up` is ready to sign in. The credentials come from the environment, never the image, and an existing account is never overwritten. **Change them for any shared deploy.** The app has no roles, so the admin is an ordinary account that exists from the start.
+
+**Settings:** `ALLOW_SIGNUP=false` closes registration, for example on a public deploy once your team has accounts. Behind HTTPS, keep `COOKIE_SECURE` on and set `TRUST_PROXY` to your proxy hop count. See [Environment variables](#environment-variables-backend-all-optional).
+
+**Not included:** password reset, email verification and account settings (all need an email service or more UI), roles, and per-user catalogs.
 
 ## Development history
 
@@ -216,4 +271,4 @@ The app was built in small pull requests, one concern at a time, each with CI:
 - AI assistance: suggest a category and description from the product name.
 - Search by name, sorting, and pagination for larger catalogs.
 - A dedicated categories table if categories need their own management.
-- Authentication and per-user catalogs.
+- Per-user catalogs or roles, password reset and email verification (on top of the accounts above).

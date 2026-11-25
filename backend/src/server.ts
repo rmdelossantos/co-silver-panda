@@ -1,13 +1,24 @@
 import { createApp } from './app.js';
+import { ensureAdminAccount } from './auth/seed-admin.js';
+import { createSessionsRepo } from './auth/sessions.repo.js';
+import { createUsersRepo } from './auth/users.repo.js';
 import { openDb } from './db/client.js';
 import { seedIfEmpty } from './db/seed.js';
 import { env } from './env.js';
 import { createProductsRepo } from './products/products.repo.js';
 
 const db = openDb(env.DB_PATH);
+createSessionsRepo(db).removeExpired();
 
 const seeded = seedIfEmpty(createProductsRepo(db));
 if (seeded) console.log(`Seeded ${seeded} sample products`);
+
+const admin = await ensureAdminAccount(createUsersRepo(db), {
+  email: env.ADMIN_EMAIL,
+  name: env.ADMIN_NAME,
+  password: env.ADMIN_PASSWORD,
+});
+if (admin === 'created') console.log(`Created admin account ${env.ADMIN_EMAIL}`); // never log the password
 
 const server = createApp(db).listen(env.PORT, () => {
   console.log(`API listening on http://localhost:${env.PORT}`);
