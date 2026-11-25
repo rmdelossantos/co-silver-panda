@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { focusOnMount } from './focus-on-mount';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { Button } from '../components/Button';
 import { TextField } from '../components/TextField';
 import { signInSchema, type SignInValues } from './auth.schema';
@@ -37,7 +38,7 @@ export function SignInForm({ initialEmail, focusHeading, onCreateAccount }: Sign
     else setFocus('email');
   }, [focusHeading, setFocus]);
 
-  const submit = handleSubmit((input) => signIn.mutate(input));
+  const submit = handleSubmit((input) => signIn.mutate(input, { onSuccess: ({ user }) => toast.success(`Signed in as ${user.name}`) }));
 
   return (
     <form noValidate onSubmit={submit} className="space-y-5">

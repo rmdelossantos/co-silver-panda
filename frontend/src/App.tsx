@@ -1,4 +1,5 @@
 import { RotateCw } from 'lucide-react';
+import { useState } from 'react';
 import { AuthScreen } from './auth/AuthScreen';
 import { useSession } from './auth/useSession';
 import { Button } from './components/Button';
@@ -20,6 +21,10 @@ export default function App() {
 // The catalog is shared but private: show it only to signed-in people.
 function SessionGate() {
   const session = useSession();
+  // Once someone has seen sign-in, the catalog appearing means they just signed in: move focus to it.
+  // A reload with a live session never shows sign-in, so focus stays where the browser puts it.
+  const [sawSignIn, setSawSignIn] = useState(false);
+  if (session.data && !session.data.user && !sawSignIn) setSawSignIn(true);
 
   if (session.isPending) {
     return (
@@ -41,5 +46,5 @@ function SessionGate() {
       </div>
     );
   }
-  return session.data.user ? <ProductsPage /> : <AuthScreen signupEnabled={session.data.signupEnabled} />;
+  return session.data.user ? <ProductsPage focusHeading={sawSignIn} /> : <AuthScreen signupEnabled={session.data.signupEnabled} />;
 }

@@ -102,8 +102,11 @@ describe('sign in', () => {
     expect(password).toHaveAttribute('autocomplete', 'current-password');
     await user.click(toggle);
 
+    // The accessible name follows the visible word (WCAG 2.5.3), so "Hide" is what voice control hears.
     expect(password).toHaveAttribute('type', 'text');
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveAccessibleName('Hide password');
+    await user.click(toggle);
+    expect(toggle).toHaveAccessibleName('Show password');
   });
 
   it('hides "Create an account" when sign-up is turned off', () => {

@@ -26,6 +26,14 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Product Catalog' })).toBeInTheDocument();
   });
 
+  it('leaves focus alone when a signed-in user loads the page', async () => {
+    serveProducts();
+    renderWithQueryClient(<App />);
+
+    expect(await screen.findByText('Wireless Mouse')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Products' })).not.toHaveFocus();
+  });
+
   it('shows the catalog to a signed-in user', async () => {
     serveProducts();
 
@@ -56,8 +64,27 @@ describe('App', () => {
     await user.type(screen.getByLabelText('Password'), 'correct horse battery');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
 
-    expect(await screen.findByRole('heading', { name: 'Products' })).toBeInTheDocument();
+    const heading = await screen.findByRole('heading', { name: 'Products' });
     expect(await screen.findByText('Wireless Mouse')).toBeInTheDocument();
+    // Signing in confirms who you are and moves focus to the catalog instead of dropping it on <body>.
+    expect(await screen.findByText('Signed in as Ana')).toBeInTheDocument();
+    await waitFor(() => expect(heading).toHaveFocus());
+  });
+
+  it('confirms the new account after signing up', async () => {
+    signedOut();
+    serveProducts();
+    server.use(http.post('/api/auth/sign-up', () => HttpResponse.json({ user: ana }, { status: 201 })));
+    renderWithQueryClient(<App />);
+
+    await user.click(await screen.findByRole('button', { name: 'Create an account' }));
+    await user.type(screen.getByLabelText('Name'), ana.name);
+    await user.type(screen.getByLabelText('Email'), ana.email);
+    await user.type(screen.getByLabelText('Password'), 'correct horse battery');
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+
+    expect(await screen.findByText('Signed in as Ana')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Products' })).toHaveFocus());
   });
 
   it('keeps a deep-linked category filter through sign-in', async () => {

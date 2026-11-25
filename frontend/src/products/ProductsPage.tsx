@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../components/Button';
 import { useSearchParam } from '../lib/useSearchParam';
 import { filterByCategory, getCategories, resolveCategory } from './categories';
@@ -11,7 +11,7 @@ import { ProductList } from './ProductList';
 import type { Product } from './product.types';
 import { useProducts } from './useProducts';
 
-export function ProductsPage() {
+export function ProductsPage({ focusHeading = false }: { focusHeading?: boolean }) {
   const { data: products, isPending, isError, error, refetch } = useProducts();
   const [requestedCategory, setRequestedCategory] = useSearchParam('category');
   // The category we fell back from, kept so the summary can explain why "All" is showing.
@@ -21,6 +21,10 @@ export function ProductsPage() {
   // Where keyboard focus goes after a delete removes the row that opened the dialog.
   const focusAfterDelete = useRef<number | 'heading' | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (focusHeading) headingRef.current?.focus();
+  }, [focusHeading]);
 
   const categories = useMemo(() => getCategories(products ?? []), [products]);
   const category = resolveCategory(categories, requestedCategory);

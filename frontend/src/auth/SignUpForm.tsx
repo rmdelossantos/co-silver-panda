@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef, useState } from 'react';
 import { focusOnMount } from './focus-on-mount';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import { Button } from '../components/Button';
 import { TextField } from '../components/TextField';
 import { ApiError } from '../lib/api-client';
@@ -42,6 +43,7 @@ export function SignUpForm({ initialEmail, focusHeading, onSignIn }: SignUpFormP
   const submit = handleSubmit((input) => {
     setEmailTaken(false);
     signUp.mutate(input, {
+      onSuccess: ({ user }) => toast.success(`Signed in as ${user.name}`),
       onError: (error) => {
         if (error instanceof ApiError && error.status === 409) {
           setEmailTaken(true);
