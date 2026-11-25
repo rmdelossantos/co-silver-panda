@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 import type { FieldError, UseFormRegisterReturn } from 'react-hook-form';
 import { controlClass, controlStateClass } from './field-styles';
 
@@ -18,6 +18,8 @@ export interface TextFieldProps {
   autoFocusOnOpen?: boolean;
   hint?: string;
   hintOver?: boolean;
+  // Content placed inside the input on the right, e.g. a show/hide password button.
+  trailing?: ReactNode;
 }
 
 export function TextField({
@@ -30,6 +32,7 @@ export function TextField({
   hint,
   hintOver,
   type = 'text',
+  trailing,
   ...inputProps
 }: TextFieldProps) {
   const id = useId();
@@ -55,12 +58,13 @@ export function TextField({
           )}
           <input
             type={type}
-            className={`${className} ${prefix ? 'pl-7 tabular-nums' : ''}`}
+            className={`${className} ${prefix ? 'pl-7 tabular-nums' : ''} ${trailing ? 'pr-20' : ''}`}
             {...a11y}
             {...inputProps}
             data-autofocus={autoFocusOnOpen || undefined}
             {...registration}
           />
+          {trailing && <div className="absolute inset-y-0 right-1.5 flex items-center">{trailing}</div>}
         </div>
       )}
       {(error || hint) && (
