@@ -4,16 +4,20 @@ import { createApp } from '../src/app.js';
 import { openDb } from '../src/db/client.js';
 import { seedIfEmpty } from '../src/db/seed.js';
 import { createProductsRepo } from '../src/products/products.repo.js';
+import { signedIn } from './helpers.js';
 
 const valid = { name: 'Wireless Mouse', price: 24.99, category: 'Electronics', description: 'Quiet clicks' };
 
 let app: ReturnType<typeof createApp>;
+let api: ReturnType<typeof signedIn>;
 
 beforeEach(() => {
-  app = createApp(openDb(':memory:'));
+  const db = openDb(':memory:');
+  app = createApp(db);
+  api = signedIn(app, db);
 });
 
-const create = (body: object) => request(app).post('/api/products').send(body);
+const create = (body: object) => api.post('/api/products').send(body);
 
 describe('POST /api/products', () => {
   it('creates a product and returns 201 with the stored record', async () => {
@@ -58,7 +62,7 @@ describe('POST /api/products', () => {
   });
 
   it('rejects malformed JSON with 400', async () => {
-    const res = await request(app).post('/api/products').set('content-type', 'application/json').send('{bad');
+    const res = await api.post('/api/products').set('content-type', 'application/json').send('{bad');
 
     expect(res.status).toBe(400);
     expect(res.body.error.message).toBe('Invalid JSON body');
@@ -67,7 +71,7 @@ describe('POST /api/products', () => {
 
 describe('GET /api/products', () => {
   it('returns an empty list when there are no products', async () => {
-    const res = await request(app).get('/api/products');
+    const res = await api.get('/api/products');
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual([]);
@@ -77,7 +81,7 @@ describe('GET /api/products', () => {
     await create({ ...valid, name: 'First' });
     await create({ ...valid, name: 'Second' });
 
-    const res = await request(app).get('/api/products');
+    const res = await api.get('/api/products');
 
     expect(res.body.map((p: { name: string }) => p.name)).toEqual(['Second', 'First']);
   });
@@ -86,7 +90,7 @@ describe('GET /api/products', () => {
     await create({ ...valid, category: 'Electronics' });
     await create({ ...valid, category: 'Kitchen' });
 
-    const res = await request(app).get('/api/products').query({ category: 'electronics' });
+    const res = await api.get('/api/products').query({ category: 'electronics' });
 
     expect(res.body).toHaveLength(1);
     expect(res.body[0].category).toBe('Electronics');
@@ -95,7 +99,7 @@ describe('GET /api/products', () => {
   it('ignores a blank category filter', async () => {
     await create(valid);
 
-    const res = await request(app).get('/api/products').query({ category: ' ' });
+    const res = await api.get('/api/products').query({ category: ' ' });
 
     expect(res.body).toHaveLength(1);
   });
@@ -107,7 +111,7 @@ describe('GET /api/products/categories', () => {
     await create({ ...valid, category: 'books' });
     await create({ ...valid, category: 'Kitchen' });
 
-    const res = await request(app).get('/api/products/categories');
+    const res = await api.get('/api/products/categories');
 
     expect(res.body).toEqual(['books', 'Kitchen']);
   });
@@ -117,20 +121,20 @@ describe('GET /api/products/:id', () => {
   it('returns the product', async () => {
     const { body: created } = await create(valid);
 
-    const res = await request(app).get(`/api/products/${created.id}`);
+    const res = await api.get(`/api/products/${created.id}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(created);
   });
 
   it('returns 404 for an unknown id', async () => {
-    const res = await request(app).get('/api/products/999');
+    const res = await api.get('/api/products/999');
 
     expect(res.status).toBe(404);
   });
 
   it.each(['abc', '0', '-1', '1.5'])('returns 400 for invalid id %s', async (id) => {
-    const res = await request(app).get(`/api/products/${id}`);
+    const res = await api.get(`/api/products/${id}`);
 
     expect(res.status).toBe(400);
   });
@@ -141,7 +145,7 @@ describe('PUT /api/products/:id', () => {
     const { body: created } = await create(valid);
     const changes = { name: 'Trackball', price: 59.5, category: 'Accessories', description: '' };
 
-    const res = await request(app).put(`/api/products/${created.id}`).send(changes);
+    const res = await api.put(`/api/products/${created.id}`).send(changes);
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ id: created.id, ...changes, createdAt: created.createdAt });
@@ -151,13 +155,13 @@ describe('PUT /api/products/:id', () => {
   it('validates the body', async () => {
     const { body: created } = await create(valid);
 
-    const res = await request(app).put(`/api/products/${created.id}`).send({ ...valid, price: 'free' });
+    const res = await api.put(`/api/products/${created.id}`).send({ ...valid, price: 'free' });
 
     expect(res.status).toBe(400);
   });
 
   it('returns 404 for an unknown id', async () => {
-    const res = await request(app).put('/api/products/999').send(valid);
+    const res = await api.put('/api/products/999').send(valid);
 
     expect(res.status).toBe(404);
   });
@@ -167,22 +171,44 @@ describe('DELETE /api/products/:id', () => {
   it('deletes the product and returns 204', async () => {
     const { body: created } = await create(valid);
 
-    const res = await request(app).delete(`/api/products/${created.id}`);
+    const res = await api.delete(`/api/products/${created.id}`);
 
     expect(res.status).toBe(204);
-    expect((await request(app).get(`/api/products/${created.id}`)).status).toBe(404);
+    expect((await api.get(`/api/products/${created.id}`)).status).toBe(404);
   });
 
   it('returns 404 when the product does not exist', async () => {
-    const res = await request(app).delete('/api/products/999');
+    const res = await api.delete('/api/products/999');
 
     expect(res.status).toBe(404);
   });
 });
 
+describe('without a session', () => {
+  it.each([
+    ['GET', '/api/products'],
+    ['GET', '/api/products/categories'],
+    ['GET', '/api/products/1'],
+    ['POST', '/api/products'],
+    ['PUT', '/api/products/1'],
+    ['DELETE', '/api/products/1'],
+  ] as const)('%s %s returns 401', async (method, path) => {
+    const res = await request(app)[method.toLowerCase() as 'get'](path).send(valid);
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual({ error: { message: 'Sign in to continue' } });
+  });
+
+  it('does not change data when rejected', async () => {
+    await request(app).post('/api/products').send(valid);
+
+    expect((await api.get('/api/products')).body).toEqual([]);
+  });
+});
+
 describe('unknown API routes', () => {
   it('return a JSON 404', async () => {
-    const res = await request(app).get('/api/nope');
+    const res = await api.get('/api/nope');
 
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: { message: 'Not found' } });

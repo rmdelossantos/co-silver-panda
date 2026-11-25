@@ -3,6 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import path from 'node:path';
 import { authRouter, defaultRateLimits, type AuthRateLimits } from './auth/auth.router.js';
+import { requireAuth } from './auth/require-auth.js';
 import { cookieOptions } from './auth/session-cookie.js';
 import { createSessionsRepo } from './auth/sessions.repo.js';
 import { createUsersRepo } from './auth/users.repo.js';
@@ -53,7 +54,7 @@ export function createApp(db: Db, { staticDir = env.STATIC_DIR, auth = {} }: App
       limits: { ...defaultRateLimits, ...auth.rateLimit },
     }),
   );
-  app.use('/api/products', productsRouter(createProductsRepo(db)));
+  app.use('/api/products', requireAuth(sessions, cookieOpts), productsRouter(createProductsRepo(db)));
 
   app.use('/api', notFound);
 
