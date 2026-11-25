@@ -10,6 +10,17 @@ A full-stack product catalog for managing products: add, view, filter by categor
   <img src="docs/screenshots/catalog-mobile-filtered.png" alt="Catalog filtered to Kitchen on a phone" width="30%">
 </p>
 
+## Signing in
+
+The catalog requires an account. Either way works:
+
+| Option | How |
+|---|---|
+| **Use the default admin** | Email **`admin@example.com`**, password **`admin-password-123`**. Created automatically on first start by `docker compose up` (both `compose.yaml` and `compose.dev.yaml`). |
+| **Create your own** | On the sign-in screen, choose **Create an account**: any name, any email (nothing is sent to it), and a password of at least 12 characters. |
+
+Running without Docker (`npm run dev`) doesn't create the admin unless you pass it in, for example `ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=admin-password-123 npm run dev` in `backend/`. You can also just create an account. The default admin is for local review only; see [Accounts and sign-in](#accounts-and-sign-in) for changing or turning it off.
+
 ## Features
 
 | Requirement | How it works |
@@ -77,7 +88,7 @@ The quickest way to run everything, with only [Docker](https://docs.docker.com/g
 docker compose up --build
 ```
 
-Open http://localhost:3000. One container serves the UI and the API from the same origin, and the SQLite data is kept in the `catalog-data` volume across restarts. Use `docker compose down -v` to reset the data. Set `APP_PORT=8080` to use a different host port.
+Open http://localhost:3000 and sign in with the default admin account, **`admin@example.com` / `admin-password-123`**, or create your own. One container serves the UI and the API from the same origin, and the SQLite data is kept in the `catalog-data` volume across restarts. Use `docker compose down -v` to reset the data. Set `APP_PORT=8080` to use a different host port.
 
 **Development in Docker (hot reload):**
 
@@ -138,6 +149,7 @@ Open http://localhost:5173. The Vite dev server forwards `/api/*` requests to th
 | `COOKIE_SECURE` | `true` when `NODE_ENV=production` | `Secure` flag on the session cookie. Compose and CI set `false` because they serve plain HTTP |
 | `TRUST_PROXY` | `false` | Behind a reverse proxy, a hop count such as `1` (or a subnet list), so rate limits see real client IPs. `true` is rejected |
 | `SESSION_TTL_HOURS` | `168` | How long a session lasts (fixed from sign-in) |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME` | unset (Compose: `admin@example.com` / `admin-password-123` / `Admin`) | Default account created on first start if missing. Never overwritten, so changing these later doesn't reset an existing password |
 
 See `backend/.env.example`. If you change `PORT`, also update the proxy target in `frontend/vite.config.ts`.
 
@@ -191,7 +203,7 @@ curl -b jar -X POST localhost:3000/api/products -H 'content-type: application/js
 ## Testing
 
 ```bash
-cd backend && npm test     # 86 tests: every endpoint and error path, password hashing, sessions, auth, rate limits, 401s
+cd backend && npm test     # 94 tests: every endpoint and error path, password hashing, sessions, auth, rate limits, 401s
 cd frontend && npm test    # 90 tests: API client, hooks, filtering, forms, CRUD flows, sign-in/up, session expiry
 ```
 
@@ -231,6 +243,8 @@ The catalog is **shared**: everyone with an account sees and edits the same prod
 - **Brute force:** failed sign-ins are limited to 20 per 15 minutes per **email** (so one account can't be guessed from many IPs) and 50 per 15 minutes per IP. Sign-ups are limited to 5 an hour per IP. Trade-off: someone can briefly block a victim's sign-in, which is still better than locking accounts.
 - **Enumeration:** a wrong password and an unknown email give the same message and take the same time. Sign-up does say when an email is taken (`409`), which can't be avoided without email verification.
 - **Caching:** auth and product responses are sent with `Cache-Control: private, no-store`.
+
+**Default admin:** set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`) and the account is created when the server first starts, if it doesn't exist yet. Docker Compose sets local defaults (`admin@example.com` / `admin-password-123`), so `docker compose up` is ready to sign in. The credentials come from the environment, never the image, and an existing account is never overwritten. **Change them for any shared deploy.** The app has no roles, so the admin is an ordinary account that exists from the start.
 
 **Settings:** `ALLOW_SIGNUP=false` closes registration, for example on a public deploy once your team has accounts. Behind HTTPS, keep `COOKIE_SECURE` on and set `TRUST_PROXY` to your proxy hop count. See [Environment variables](#environment-variables-backend-all-optional).
 

@@ -50,7 +50,8 @@ jobs:
       - name: Run container and wait until healthy
         run: |
           # Plain HTTP in CI, so the session cookie must not be Secure.
-          docker run -d --name catalog -p 3000:3000 -e COOKIE_SECURE=false product-catalog:ci
+          docker run -d --name catalog -p 3000:3000 -e COOKIE_SECURE=false \
+            -e ADMIN_EMAIL=admin@example.com -e ADMIN_PASSWORD=ci-admin-password product-catalog:ci
           for i in $(seq 1 30); do
             [ "$(docker inspect -f '{{.State.Health.Status}}' catalog)" = healthy ] && break
             sleep 2
@@ -66,6 +67,9 @@ jobs:
           curl -fsS -b jar localhost:3000/api/products | grep -q 'Wireless Mouse'
           curl -fsS -b jar -X POST localhost:3000/api/products -H 'content-type: application/json' \
             -d '{"name":"CI Mug","price":9.5,"category":"Kitchen"}' | grep -q '"CI Mug"'
+          curl -fsS -c admin-jar -X POST localhost:3000/api/auth/sign-in -H 'content-type: application/json' \
+            -d '{"email":"admin@example.com","password":"ci-admin-password"}' | grep -q '"admin@example.com"'
+          curl -fsS -b admin-jar localhost:3000/api/products | grep -q 'Wireless Mouse'
       - name: Stops cleanly on SIGTERM
         run: |
           timeout 8 docker stop catalog

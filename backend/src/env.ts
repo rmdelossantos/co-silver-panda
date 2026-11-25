@@ -26,6 +26,10 @@ export const env = {
   COOKIE_SECURE: parseBool('COOKIE_SECURE', process.env.COOKIE_SECURE, process.env.NODE_ENV === 'production'),
   TRUST_PROXY: parseTrustProxy(process.env.TRUST_PROXY),
   SESSION_TTL_HOURS: Number(process.env.SESSION_TTL_HOURS || 168),
+  // Optional default account, created on first start (see auth/seed-admin.ts).
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || undefined,
+  ADMIN_NAME: process.env.ADMIN_NAME || undefined,
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || undefined,
 };
 
 export const envInternals = { parseBool, parseTrustProxy };

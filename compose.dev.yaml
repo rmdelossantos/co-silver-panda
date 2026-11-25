@@ -16,6 +16,11 @@ services:
       DB_PATH: /data/catalog.db
       CORS_ORIGIN: http://localhost:${WEB_PORT:-5173}
       ALLOW_SIGNUP: ${ALLOW_SIGNUP:-}
+      # Default admin account, created on first start if missing. Local defaults only: override these
+      # (or unset them) for any shared or public deploy. Changing them later doesn't alter an existing account.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password-123}
+      ADMIN_NAME: ${ADMIN_NAME:-Admin}
     volumes:
       - ./backend:/app/backend
       - api-node-modules:/app/backend/node_modules
