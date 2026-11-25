@@ -11,8 +11,8 @@ const email = z
 // Length over composition rules (NIST 800-63B). Not trimmed: spaces are valid password characters.
 const newPassword = z
   .string({ error: 'Password is required' })
-  .min(12, 'Use at least 12 characters')
-  .max(128, 'Use at most 128 characters');
+  .min(12, 'Password must be at least 12 characters')
+  .max(128, 'Password must be at most 128 characters');
 
 export const signUpSchema = z.object({
   email,

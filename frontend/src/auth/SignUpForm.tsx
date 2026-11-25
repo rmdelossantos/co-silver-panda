@@ -81,7 +81,7 @@ export function SignUpForm({ initialEmail, focusHeading, onSignIn }: SignUpFormP
         label="Password"
         type={showPassword ? 'text' : 'password'}
         autoComplete="new-password"
-        hint="At least 12 characters. A short phrase works well."
+        hint="At least 12 characters"
         error={errors.password}
         registration={register('password')}
         trailing={<PasswordToggle shown={showPassword} onToggle={() => setShowPassword((s) => !s)} />}

@@ -44,7 +44,7 @@ describe('ensureAdminAccount', () => {
   it.each([
     [{ email: admin.email }, /both ADMIN_EMAIL and ADMIN_PASSWORD/],
     [{ password: admin.password }, /both ADMIN_EMAIL and ADMIN_PASSWORD/],
-    [{ ...admin, password: 'short' }, /password: Use at least 12 characters/],
+    [{ ...admin, password: 'short' }, /password: Password must be at least 12 characters/],
     [{ ...admin, email: 'not-an-email' }, /email: Enter a valid email address/],
   ])('refuses invalid settings with a clear error: %o', async (settings, message) => {
     const users = createUsersRepo(openDb(':memory:'));

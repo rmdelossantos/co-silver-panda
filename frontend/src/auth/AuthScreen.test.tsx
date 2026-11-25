@@ -147,13 +147,15 @@ describe('create account', () => {
   it('requires at least 12 characters, shown as a hint', async () => {
     await openCreateAccount();
 
-    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('At least 12 characters. A short phrase works well.');
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('At least 12 characters');
     await user.type(screen.getByLabelText('Name'), 'Ana');
     await user.type(screen.getByLabelText('Email'), 'ana@shop.example');
     await user.type(screen.getByLabelText('Password'), 'short');
     await user.click(screen.getByRole('button', { name: 'Create account' }));
 
-    expect(await screen.findByText('Use at least 12 characters')).toBeInTheDocument();
+    expect(await screen.findByText('Password is too short')).toBeInTheDocument();
+    // Error and hint stay distinct: the error names the problem, the hint keeps the rule visible.
+    expect(screen.getByLabelText('Password')).toHaveAccessibleDescription('Password is too short At least 12 characters');
     expect(requests).toHaveLength(0);
   });
 

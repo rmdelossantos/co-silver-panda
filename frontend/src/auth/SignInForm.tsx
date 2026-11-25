@@ -45,7 +45,7 @@ export function SignInForm({ initialEmail, focusHeading, onCreateAccount }: Sign
         <h2 ref={headingRef} tabIndex={-1} className="text-xl font-semibold tracking-tight focus-visible:outline-none">
           Sign in
         </h2>
-        <p className="mt-1 text-sm text-ink-muted">Welcome back to your product catalog.</p>
+        <p className="mt-1 text-sm text-ink-muted">Sign in to manage the store catalog.</p>
       </div>
 
       {signIn.isError && (
